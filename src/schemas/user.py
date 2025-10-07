@@ -15,3 +15,7 @@ class User(BaseModel):
     email: EmailStr
     role: str = "student"
 
+
+class CheckEmailRequest(BaseModel):
+    email: EmailStr
+

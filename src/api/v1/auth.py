@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from src.core.security import get_current_user
 from src.db.session import get_supabase_client
 from src.schemas.token import Token
-from src.schemas.user import User, UserCreate
+from src.schemas.user import CheckEmailRequest, User, UserCreate
 
 router = APIRouter()
 
@@ -109,3 +109,19 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
 @router.get("/me", response_model=User)
 async def get_me(current_user: User = Depends(get_current_user)) -> User:
     return current_user
+
+@router.post("/check-email")
+async def check_email(request: CheckEmailRequest):
+    supabase = get_supabase_client()
+
+    try:
+        response = await _finalize_request(
+            supabase.table("profiles").select("email").eq("email", request.email).execute()
+        )
+        exists = len(response.data) > 0
+        return {"exists": exists}
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error",
+        ) from exc
