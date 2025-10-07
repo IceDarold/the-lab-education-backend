@@ -19,3 +19,12 @@ class User(BaseModel):
 class CheckEmailRequest(BaseModel):
     email: EmailStr
 
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    newPassword: str
+

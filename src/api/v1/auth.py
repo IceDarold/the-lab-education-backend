@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from src.core.security import get_current_user
 from src.db.session import get_supabase_client
 from src.schemas.token import Token
-from src.schemas.user import CheckEmailRequest, User, UserCreate
+from src.schemas.user import CheckEmailRequest, ForgotPasswordRequest, ResetPasswordRequest, User, UserCreate
 
 router = APIRouter()
 
@@ -124,4 +124,69 @@ async def check_email(request: CheckEmailRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database error",
+        ) from exc
+
+
+@router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+    supabase = get_supabase_client()
+
+    # Check if email exists in profiles
+    try:
+        response = await _finalize_request(
+            supabase.table("profiles").select("email").eq("email", request.email).execute()
+        )
+        exists = len(response.data) > 0
+        if not exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Email not found",
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error",
+        ) from exc
+
+    # Send reset email
+    try:
+        await _finalize_request(
+            supabase.auth.reset_password_for_email(request.email)
+        )
+        return {"message": "Password reset email sent"}
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send reset email",
+        ) from exc
+
+
+@router.post("/reset-password")
+async def reset_password(request: ResetPasswordRequest):
+    supabase = get_supabase_client()
+
+    # Verify the recovery token
+    try:
+        verify_response = await _finalize_request(
+            supabase.auth.verify_otp(type='recovery', token=request.token)
+        )
+        # If successful, the session is set
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired token",
+        ) from exc
+
+    # Update the password
+    try:
+        await _finalize_request(
+            supabase.auth.update_user({"password": request.newPassword})
+        )
+        return {"message": "Password updated successfully"}
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update password",
         ) from exc
