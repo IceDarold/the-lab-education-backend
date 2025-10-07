@@ -17,7 +17,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     logger.info(f"Validating token: {token[:50]}...")
     supabase = get_supabase_client()
     try:
-        response = await supabase.auth.get_user(token)
+        response = supabase.auth.get_user(token)
         logger.info("Token validation successful")
     except Exception as exc:  # pragma: no cover - defensive against SDK internals
         logger.error(f"Token validation failed: {str(exc)}")
