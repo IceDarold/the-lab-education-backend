@@ -4,7 +4,7 @@ import logging
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
-from src.db.session import get_supabase_client
+from src.db.session import get_supabase_client, get_supabase_admin_client
 from src.schemas.user import User
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # Fetch role from profiles table
     user_id = str(getattr(user, "id"))
     logger.info(f"Fetching profile for user_id: {user_id}")
-    profile_response = supabase.table("profiles").select("role").eq("id", user_id).execute()
+    admin_supabase = get_supabase_admin_client()
+    profile_response = admin_supabase.table("profiles").select("role").eq("id", user_id).execute()
     profile_data = getattr(profile_response, "data", []) or []
     role = profile_data[0].get("role", "student") if profile_data else "student"
     logger.info(f"Profile role: {role}")
