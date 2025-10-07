@@ -43,11 +43,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # Fetch role from profiles table
     user_id = str(getattr(user, "id"))
     logger.info(f"Fetching profile for user_id: {user_id}")
-    admin_supabase = get_supabase_admin_client()
-    profile_response = admin_supabase.table("profiles").select("role").eq("id", user_id).execute()
-    profile_data = getattr(profile_response, "data", []) or []
-    role = profile_data[0].get("role", "student") if profile_data else "student"
-    logger.info(f"Profile role: {role}")
+    try:
+        admin_supabase = get_supabase_admin_client()
+        profile_response = admin_supabase.table("profiles").select("role").eq("id", user_id).execute()
+        profile_data = getattr(profile_response, "data", []) or []
+        role = profile_data[0].get("role", "student") if profile_data else "student"
+        logger.info(f"Profile role: {role}")
+    except Exception as exc:
+        logger.error(f"Profile query failed: {str(exc)}")
+        role = "student"
 
     return User(
         user_id=UUID(user_id),
