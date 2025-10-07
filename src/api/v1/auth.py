@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.core.security import get_current_user
-from src.db.session import get_supabase_client
+from src.db.session import get_supabase_admin_client, get_supabase_client
 from src.schemas.token import Token
 from src.schemas.user import CheckEmailRequest, ForgotPasswordRequest, ResetPasswordRequest, User, UserCreate
 
@@ -112,7 +112,7 @@ async def get_me(current_user: User = Depends(get_current_user)) -> User:
 
 @router.post("/check-email")
 async def check_email(request: CheckEmailRequest):
-    supabase = get_supabase_client()
+    supabase = get_supabase_admin_client()
 
     try:
         response = await _finalize_request(
@@ -129,7 +129,7 @@ async def check_email(request: CheckEmailRequest):
 
 @router.post("/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest):
-    supabase = get_supabase_client()
+    supabase = get_supabase_admin_client()
 
     # Check if email exists in profiles
     try:
@@ -150,10 +150,11 @@ async def forgot_password(request: ForgotPasswordRequest):
             detail="Database error",
         ) from exc
 
-    # Send reset email
+    # Send reset email using regular client
+    supabase_auth = get_supabase_client()
     try:
         await _finalize_request(
-            supabase.auth.reset_password_for_email(request.email)
+            supabase_auth.auth.reset_password_for_email(request.email)
         )
         return {"message": "Password reset email sent"}
     except Exception as exc:

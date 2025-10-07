@@ -8,6 +8,7 @@ class Settings(BaseSettings):
 
     SUPABASE_URL: Optional[str] = None
     SUPABASE_KEY: Optional[str] = None
+    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
     SECRET_KEY: Optional[str] = None
     ALGORITHM: str = "HS256"
     CONTENT_ROOT: str = "content"
