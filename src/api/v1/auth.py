@@ -116,9 +116,10 @@ async def check_email(request: CheckEmailRequest):
 
     try:
         response = await _finalize_request(
-            supabase.table("profiles").select("email").eq("email", request.email).execute()
+            supabase.auth.admin.list_users()
         )
-        exists = len(response.data) > 0
+        users = getattr(response, 'users', []) or []
+        exists = any(getattr(user, 'email', None) == request.email for user in users)
         return {"exists": exists}
     except Exception as exc:
         raise HTTPException(
@@ -131,12 +132,13 @@ async def check_email(request: CheckEmailRequest):
 async def forgot_password(request: ForgotPasswordRequest):
     supabase = get_supabase_admin_client()
 
-    # Check if email exists in profiles
+    # Check if email exists in users
     try:
         response = await _finalize_request(
-            supabase.table("profiles").select("email").eq("email", request.email).execute()
+            supabase.auth.admin.list_users()
         )
-        exists = len(response.data) > 0
+        users = getattr(response, 'users', []) or []
+        exists = any(getattr(user, 'email', None) == request.email for user in users)
         if not exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
