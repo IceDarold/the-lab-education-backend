@@ -4,12 +4,13 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+import fastapi.responses
 
 from src.core.config import settings
-from src.core.security import get_current_user
+from src.core.security import get_current_user, get_current_admin
 from src.schemas.lesson import LessonCompleteResponse, LessonContent
 from src.schemas.user import User
-from src.services.ulf_parser import ULFParseError, parse_lesson_file
+from src.services.ulf_parser import ULFParseError, parse_lesson_file, parse_lesson_file_from_text
 
 router = APIRouter()
 
@@ -50,6 +51,49 @@ async def get_lesson_content(slug: str, current_user: User = Depends(get_current
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
         ) from exc
+
+
+@router.get("/{slug}/raw", response_class=fastapi.responses.PlainTextResponse)
+async def get_lesson_raw(slug: str, current_admin: User = Depends(get_current_admin)) -> str:
+    del current_admin
+    try:
+        lesson_path = _find_lesson_file(slug)
+    except FileNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found") from None
+
+    try:
+        return lesson_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found") from None
+
+
+@router.put("/{slug}/raw")
+async def update_lesson_raw(slug: str, content: str, current_admin: User = Depends(get_current_admin)) -> dict:
+    del current_admin
+    try:
+        lesson_path = _find_lesson_file(slug)
+    except FileNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found") from None
+
+    # Validate by attempting to parse
+    try:
+        parse_lesson_file_from_text(content)
+    except ULFParseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid lesson format: {str(exc)}",
+        ) from exc
+
+    # Overwrite the file
+    try:
+        lesson_path.write_text(content, encoding="utf-8")
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save lesson file",
+        ) from exc
+
+    return {"message": "Lesson updated successfully"}
 
 
 async def _finalize(result: Any) -> Any:

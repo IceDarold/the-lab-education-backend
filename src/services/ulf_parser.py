@@ -13,6 +13,52 @@ class ULFParseError(Exception):
     """Raised when a lesson file in ULF format cannot be parsed."""
 
 
+def parse_lesson_file_from_text(raw_text: str) -> LessonContent:
+    """Parse a lesson from raw text in the Unified Lesson Format (.lesson).
+
+    Args:
+        raw_text: Raw text content of the lesson file.
+
+    Raises:
+        ULFParseError: If the text has invalid structure.
+
+    Returns:
+        A `LessonContent` pydantic model describing the lesson.
+    """
+    front_matter, body = _split_front_matter(raw_text)
+    metadata = _parse_yaml(front_matter, error_message="Invalid front matter in lesson file")
+
+    if not isinstance(metadata, dict):
+        raise ULFParseError("Lesson front matter must be a mapping")
+
+    slug = metadata.get("slug") or metadata.get("lesson_slug")
+    if not slug:
+        raise ULFParseError("Lesson front matter must include 'slug'")
+
+    title = metadata.get("title")
+    if not title:
+        raise ULFParseError("Lesson front matter must include 'title'")
+
+    lesson_id = metadata.get("lesson_id") or metadata.get("id")
+    lesson_uuid = _coerce_optional_uuid(lesson_id)
+
+    course_slug = metadata.get("course_slug")
+
+    cells = _parse_cells(body)
+
+    known_keys = {"slug", "lesson_slug", "title", "lesson_id", "id", "course_slug"}
+    extra_metadata = {k: v for k, v in metadata.items() if k not in known_keys}
+
+    return LessonContent(
+        slug=str(slug),
+        title=str(title),
+        course_slug=str(course_slug) if course_slug else None,
+        lesson_id=lesson_uuid,
+        metadata=extra_metadata,
+        cells=cells,
+    )
+
+
 def parse_lesson_file(path: Path) -> LessonContent:
     """Parse a lesson stored in the Unified Lesson Format (.lesson).
 

@@ -13,4 +13,5 @@ class User(BaseModel):
     user_id: UUID
     full_name: str
     email: EmailStr
+    role: str = "student"
 
