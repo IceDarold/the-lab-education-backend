@@ -19,6 +19,8 @@ def get_supabase_admin_client() -> Client:
     таких как проверка существования email без RLS ограничений.
     """
     url = settings.SUPABASE_URL
-    key = settings.SUPABASE_SERVICE_ROLE_KEY or settings.SUPABASE_KEY
+    key = settings.SUPABASE_SERVICE_ROLE_KEY
+    if not key:
+        raise ValueError("SUPABASE_SERVICE_ROLE_KEY is required for admin operations")
     return create_client(url, key)
 
