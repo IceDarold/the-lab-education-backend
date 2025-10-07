@@ -1,0 +1,58 @@
+---
+title: Функции в Python
+slug: functions
+course_slug: python-basics
+lesson_id: "5eb6b7f3-2d88-4c0a-b0b3-8e1c21f9983c"
+reading_time: 14m
+learning_outcomes:
+  - Создавать именованные функции
+  - Понимать аргументы и значения по умолчанию
+---
+type: markdown
+order: 1
+---
+# Определение функций
+
+```python
+def greet(name):
+    return f"Привет, {name}!"
+```
+
+---
+type: markdown
+order: 2
+---
+## Аргументы по умолчанию
+
+```python
+def power(base, exponent=2):
+    return base ** exponent
+```
+
+`power(3)` вернет `9`, а `power(2, 3)` — `8`.
+
+---
+type: code
+language: python
+order: 3
+---
+def factorial(n):
+    if n <= 1:
+        return 1
+    return n * factorial(n - 1)
+
+print(factorial(5))
+
+---
+type: quiz
+question_id: "q-default-arg"
+correct_answer_id: "a-default"
+---
+Что произойдет, если вызвать `power(5)` из примера выше?
+
+- id: a-error
+  text: Python выбросит ошибку из-за отсутствующего аргумента
+- id: a-default
+  text: Функция вернет 25, используя аргумент по умолчанию
+- id: a-zero
+  text: Результат будет 0

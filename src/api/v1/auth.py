@@ -1,0 +1,111 @@
+import asyncio
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+
+from src.core.security import get_current_user
+from src.db.session import get_supabase_client
+from src.schemas.token import Token
+from src.schemas.user import User, UserCreate
+
+router = APIRouter()
+
+
+async def _finalize_request(result: Any) -> Any:
+    if asyncio.iscoroutine(result):
+        return await result
+
+    execute = getattr(result, "execute", None)
+    if callable(execute):
+        exec_result = execute()
+        if asyncio.iscoroutine(exec_result):
+            return await exec_result
+        return exec_result
+
+    return result
+
+
+@router.post("/register", response_model=None, status_code=status.HTTP_201_CREATED)
+async def register_user(user_in: UserCreate):
+    supabase = get_supabase_client()
+
+    try:
+        response = await _finalize_request(
+            supabase.auth.sign_up(
+            {
+                "email": user_in.email,
+                "password": user_in.password,
+                "options": {"data": {"full_name": user_in.full_name}},
+            }
+            )
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Registration failed",
+        ) from exc
+
+    session = getattr(response, "session", None)
+    user = getattr(response, "user", None)
+    token = getattr(session, "access_token", None)
+    if not session or not token:
+        # User may be created but email confirmation is required
+        if user is not None:
+            return {"status": "pending_confirmation"}
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Registration failed",
+        )
+
+    profile_payload: Dict[str, Any] = {
+        "full_name": user_in.full_name,
+        "email": user_in.email,
+    }
+    if user and getattr(user, "id", None):
+        profile_payload["id"] = getattr(user, "id")
+
+    profiles_table = supabase.table("profiles")
+    try:
+        await _finalize_request(profiles_table.insert(profile_payload))
+    except Exception:  # pragma: no cover - avoid failing signup when profile insert fails
+        pass
+
+    return Token(access_token=token, token_type="bearer")
+
+
+@router.post("/login", response_model=Token)
+async def login(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
+    supabase = get_supabase_client()
+
+    try:
+        response = await _finalize_request(
+            supabase.auth.sign_in_with_password(
+                {
+                    "email": form_data.username,
+                    "password": form_data.password,
+                }
+            )
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
+    session = getattr(response, "session", None)
+    token = getattr(session, "access_token", None)
+    if not session or not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return Token(access_token=token, token_type="bearer")
+
+
+@router.get("/me", response_model=User)
+async def get_me(current_user: User = Depends(get_current_user)) -> User:
+    return current_user

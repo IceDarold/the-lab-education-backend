@@ -1,0 +1,51 @@
+---
+title: Основы синтаксиса Python
+slug: python-syntax
+course_slug: python-basics
+lesson_id: "9a7b19f2-373a-4dfd-bbe4-f5933c7f0895"
+reading_time: 10m
+prerequisites:
+  - Установленный Python 3.10+
+---
+type: markdown
+order: 1
+---
+# Первая программа
+
+Python использует отступы для определения блоков кода.
+
+```python
+print("Hello, world!")
+```
+
+---
+type: markdown
+order: 2
+---
+## Переменные и типы данных
+
+```python
+name = "Ada"
+age = 32
+pi = 3.14159
+is_active = True
+```
+
+- `str` — строка
+- `int` — целое число
+- `float` — число с плавающей точкой
+- `bool` — логические значения
+
+---
+type: quiz
+question_id: "q-python-types"
+correct_answer_id: "a-bool"
+---
+Какой тип данных соответствует значению `True` в Python?
+
+- id: a-str
+  text: str
+- id: a-bool
+  text: bool
+- id: a-float
+  text: float

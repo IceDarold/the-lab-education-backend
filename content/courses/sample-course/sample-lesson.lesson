@@ -1,0 +1,19 @@
+---
+title: Sample Lesson
+slug: sample-lesson
+course_slug: sample-course
+lesson_id: "123e4567-e89b-12d3-a456-426614174000"
+duration: 20m
+---
+type: markdown
+order: 1
+---
+# Welcome to the Sample Lesson
+
+This lesson demonstrates the Unified Lesson Format.
+
+---
+type: code
+language: python
+---
+print("Hello from ULF!")

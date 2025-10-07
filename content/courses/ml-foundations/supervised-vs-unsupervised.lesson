@@ -1,0 +1,59 @@
+---
+title: Контролируемое и неконтролируемое обучение
+slug: supervised-vs-unsupervised
+course_slug: ml-foundations
+lesson_id: "0d30a5c9-ea8e-4f0a-8b9d-1a1927a046a1"
+reading_time: 15m
+objectives:
+  - Понять разницу между задачами с учителем и без
+  - Научиться выбирать подходящий тип алгоритма
+---
+type: markdown
+order: 1
+---
+# Контролируемое обучение
+
+*Контролируемое обучение* использует размеченные данные. Модель обучается сопоставлять признаки с целевой переменной.
+
+Примеры:
+- Классификация писем (спам / не спам)
+- Прогноз цены жилья
+
+---
+type: markdown
+order: 2
+---
+# Неконтролируемое обучение
+
+*Неконтролируемое обучение* работает с неразмеченными данными и ищет скрытые структуры.
+
+Примеры:
+- Кластеризация клиентов
+- Снижение размерности данных
+
+---
+type: code
+language: python
+order: 3
+---
+from sklearn.cluster import KMeans
+from sklearn.datasets import load_iris
+
+iris = load_iris()
+model = KMeans(n_clusters=3, random_state=42)
+model.fit(iris.data)
+print(model.labels_[:10])
+
+---
+type: quiz
+question_id: "q-supervised"
+correct_answer_id: "a-supervised"
+---
+Какой тип обучения подходит для задачи прогнозирования цены квартиры?
+
+- id: a-unsupervised
+  text: Неконтролируемое обучение
+- id: a-reinforcement
+  text: Обучение с подкреплением
+- id: a-supervised
+  text: Контролируемое обучение
