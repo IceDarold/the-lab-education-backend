@@ -1,5 +1,5 @@
 from uuid import UUID
-from typing import Optional
+from typing import Optional, List
 import re
 
 from pydantic import BaseModel, Field, field_validator
@@ -61,6 +61,47 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str = Field(..., min_length=1, max_length=1000)
     new_password: str = Field(..., min_length=8, max_length=128)
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    email: Optional[str] = Field(None, max_length=254)
+    role: Optional[str] = None
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        if v is not None:
+            # Basic email validation regex
+            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', v):
+                raise ValueError('Invalid email format')
+        return v
+
+
+class UserResponse(BaseModel):
+    id: int
+    user_id: UUID
+    full_name: str = Field(..., min_length=1, max_length=100)
+    email: str = Field(..., max_length=254)
+    role: str = "student"
+    created_at: str
+    updated_at: str
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        # Basic email validation regex
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', v):
+            raise ValueError('Invalid email format')
+        return v
+
+
+class UsersListResponse(BaseModel):
+    users: List[UserResponse]
+    total_items: int
+    total_pages: int
+    current_page: int
+    page_size: int
 
 
 class UserFilter(BaseModel):

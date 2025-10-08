@@ -33,5 +33,16 @@ class LessonContent(BaseModel):
         return v
 
 
+class LessonCompleteRequest(BaseModel):
+    course_slug: str = Field(..., min_length=1, max_length=100)
+
+    @field_validator('course_slug')
+    @classmethod
+    def validate_course_slug(cls, v):
+        if v is not None and not re.match(r'^[a-zA-Z0-9_-]+$', v):
+            raise ValueError('Course slug must contain only alphanumeric characters, hyphens, and underscores')
+        return v
+
+
 class LessonCompleteResponse(BaseModel):
     new_course_progress_percent: int
