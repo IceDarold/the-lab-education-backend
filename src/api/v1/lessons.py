@@ -11,6 +11,9 @@ from src.core.security import get_current_user, get_current_admin
 from src.schemas.lesson import LessonCompleteResponse, LessonContent
 from src.schemas.user import User
 from src.services.ulf_parser import ULFParseError, parse_lesson_file, parse_lesson_file_from_text
+from src.services.file_system_service import FileSystemService
+from src.services.ulf_parser_service import ULFParserService
+from src.services.content_scanner_service import ContentScannerService
 
 router = APIRouter()
 
@@ -56,13 +59,11 @@ async def get_lesson_content(slug: str, current_user: User = Depends(get_current
 @router.get("/{slug}/raw", response_class=fastapi.responses.PlainTextResponse)
 async def get_lesson_raw(slug: str, current_admin: User = Depends(get_current_admin)) -> str:
     del current_admin
+    fs_service = FileSystemService()
     try:
         lesson_path = _find_lesson_file(slug)
-    except FileNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found") from None
-
-    try:
-        return lesson_path.read_text(encoding="utf-8")
+        relative_path = str(lesson_path.relative_to(Path(settings.CONTENT_ROOT)))
+        return await fs_service.readFile(relative_path)
     except FileNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found") from None
 
@@ -70,15 +71,19 @@ async def get_lesson_raw(slug: str, current_admin: User = Depends(get_current_ad
 @router.put("/{slug}/raw")
 async def update_lesson_raw(slug: str, content: str, current_admin: User = Depends(get_current_admin)) -> dict:
     del current_admin
+    fs_service = FileSystemService()
+    ulf_service = ULFParserService()
+    cs_service = ContentScannerService(fs_service)
     try:
         lesson_path = _find_lesson_file(slug)
+        relative_path = str(lesson_path.relative_to(Path(settings.CONTENT_ROOT)))
     except FileNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found") from None
 
     # Validate by attempting to parse
     try:
-        parse_lesson_file_from_text(content)
-    except ULFParseError as exc:
+        ulf_service.parse(content)
+    except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid lesson format: {str(exc)}",
@@ -86,13 +91,14 @@ async def update_lesson_raw(slug: str, content: str, current_admin: User = Depen
 
     # Overwrite the file
     try:
-        lesson_path.write_text(content, encoding="utf-8")
+        await fs_service.writeFile(relative_path, content)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to save lesson file",
         ) from exc
 
+    cs_service.clear_cache()
     return {"message": "Lesson updated successfully"}
 
 

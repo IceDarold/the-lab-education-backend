@@ -68,4 +68,9 @@ class ContentScannerService:
                 children.append(lesson_node)
 
         node.children = children
+        node.children = children
+        return node
+
+    def clear_cache(self):
+        self.build_content_tree.cache_clear()
         return node
