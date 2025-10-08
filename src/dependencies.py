@@ -1,3 +1,4 @@
+from src.db.session import get_db_session, get_db
 from fastapi import Depends, HTTPException, status
 from src.services.file_system_service import FileSystemService
 from src.services.content_scanner_service import ContentScannerService
