@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
 from fastapi.responses import PlainTextResponse
@@ -14,7 +14,7 @@ from src.services.file_system_service import FileSystemService
 router = APIRouter()
 
 
-@router.get("/content-tree", response_model=list[ContentNode])
+@router.get("/content-tree", response_model=List[ContentNode])
 async def get_content_tree(current_user: User = Depends(get_current_admin), cs_service: ContentScannerService = Depends(get_content_scanner)):
     return await cs_service.build_content_tree()
 

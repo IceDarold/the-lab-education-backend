@@ -40,7 +40,7 @@ def setup_logging():
     # Add structured JSON handler for production
     logger.add(
         sys.stdout,
-        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | {extra[request_id]} | {name}:{function}:{line} | {message}",
+        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | {name}:{function}:{line} | {message}",
         level="INFO",
         serialize=False,  # Set to True for JSON output in production
         enqueue=True,  # Async logging
