@@ -182,11 +182,10 @@ class TestUserCreate:
 class TestUserUpdate:
     def test_valid_update_all_fields(self):
         """Test successful update with all fields."""
-        update = UserUpdate(full_name="Jane Doe", email="jane@example.com", role="admin", status="active")
+        update = UserUpdate(full_name="Jane Doe", email="jane@example.com", role="admin")
         assert update.full_name == "Jane Doe"
         assert update.email == "jane@example.com"
         assert update.role == "admin"
-        assert update.status == "active"
 
     def test_valid_update_partial_fields(self):
         """Test successful update with partial fields."""

@@ -132,14 +132,13 @@ async def create_item(
 @router.delete("/item", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(
     path: str = Query(..., description="Path to the item to delete"),
-    # Validate path for security
-    validate_safe_path(path)
-
-    try:
     current_user: User = Depends(get_current_admin),
     fs_service: FileSystemService = Depends(get_fs_service),
     cs_service: ContentScannerService = Depends(get_content_scanner)
 ):
+    # Validate path for security
+    validate_safe_path(path)
+
     try:
         if await fs_service.path_exists(path):
             # Check if directory or file
