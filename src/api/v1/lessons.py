@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 import fastapi.responses
 
 from src.core.config import settings
@@ -69,7 +69,7 @@ async def get_lesson_raw(slug: str, current_admin: User = Depends(get_current_ad
 
 
 @router.put("/{slug}/raw")
-async def update_lesson_raw(slug: str, content: str, current_admin: User = Depends(get_current_admin)) -> dict:
+async def update_lesson_raw(slug: str, content: str = Body(..., media_type="text/plain"), current_admin: User = Depends(get_current_admin)) -> dict:
     del current_admin
     fs_service = FileSystemService()
     ulf_service = ULFParserService()

@@ -1,6 +1,6 @@
 from typing import Union
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
 from fastapi.responses import PlainTextResponse
 
 from src.core.security import get_current_admin
@@ -36,7 +36,7 @@ async def get_config_file(
 @router.put("/config-file", status_code=status.HTTP_200_OK)
 async def update_config_file(
     path: str = Query(..., description="Path to the config file"),
-    content: str = ...,
+    content: str = Body(..., media_type="text/plain"),
     current_user: User = Depends(get_current_admin)
 ):
     fs_service = FileSystemService()
