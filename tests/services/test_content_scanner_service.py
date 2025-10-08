@@ -14,10 +14,10 @@ class TestContentScannerService:
         mock_fs_service = mocker.AsyncMock()
 
         # Mock scanDirectory for 'courses' directory
-        mock_fs_service.scanDirectory.side_effect = self._mock_scan_directory
+        mock_fs_service.scan_directory.side_effect = self._mock_scan_directory
 
         # Mock readFile for config files
-        mock_fs_service.readFile.side_effect = self._mock_read_file
+        mock_fs_service.read_file.side_effect = self._mock_read_file
 
         # Create service instance
         service = ContentScannerService(mock_fs_service)

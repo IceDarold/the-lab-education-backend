@@ -26,9 +26,9 @@ async def get_config_file(
     fs_service: FileSystemService = Depends(get_fs_service)
 ):
     try:
-        content = await fs_service.readFile(path)
+        content = await fs_service.read_file(path)
         return PlainTextResponse(content)
-    except FileNotFoundError:
+    except ContentFileNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
 
 
@@ -40,7 +40,7 @@ async def update_config_file(
     fs_service: FileSystemService = Depends(get_fs_service),
     cs_service: ContentScannerService = Depends(get_content_scanner)
 ):
-    await fs_service.writeFile(path, content)
+    await fs_service.write_file(path, content)
     cs_service.clear_cache()
     return {"status": "updated"}
 
@@ -58,19 +58,19 @@ async def create_item(
         if not isinstance(request, CreateCourseRequest):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request for course")
         path = f"courses/{request.slug}"
-        await fs_service.createDirectory(path)
+        await fs_service.create_directory(path)
         config_path = f"{path}/_course.yml"
         config_content = f"title: {request.title}\n"
-        await fs_service.writeFile(config_path, config_content)
+        await fs_service.write_file(config_path, config_content)
 
     elif item_type == "module":
         if not isinstance(request, CreateModuleRequest):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request for module")
         path = f"courses/{request.parentSlug}/{request.slug}"
-        await fs_service.createDirectory(path)
+        await fs_service.create_directory(path)
         config_path = f"{path}/_module.yml"
         config_content = f"title: {request.title}\n"
-        await fs_service.writeFile(config_path, config_content)
+        await fs_service.write_file(config_path, config_content)
 
     elif item_type == "lesson":
         if not isinstance(request, CreateLessonRequest):
@@ -113,7 +113,7 @@ async def create_item(
             body_parts.append(cell['content'])
         body = '\n---\n'.join(body_parts)
         lesson_content = f"---\n{frontmatter_yaml}\n---\n{body}"
-        await fs_service.writeFile(lesson_path, lesson_content)
+        await fs_service.write_file(lesson_path, lesson_content)
 
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid item type")
@@ -130,16 +130,16 @@ async def delete_item(
     cs_service: ContentScannerService = Depends(get_content_scanner)
 ):
     try:
-        if await fs_service.pathExists(path):
+        if await fs_service.path_exists(path):
             # Check if directory or file
-            # Since scanDirectory would work for dir, but to check type
+            # Since scan_directory would work for dir, but to check type
             import os
             from pathlib import Path
             abs_path = Path('./content') / path
             if abs_path.is_dir():
-                await fs_service.deleteDirectory(path)
+                await fs_service.delete_directory(path)
             else:
-                await fs_service.deleteFile(path)
+                await fs_service.delete_file(path)
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
     except Exception as e:

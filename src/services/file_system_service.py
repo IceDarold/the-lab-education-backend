@@ -6,7 +6,7 @@ from typing import Literal
 
 import aiofiles
 
-from src.core.errors import SecurityError
+from src.core.errors import ContentFileNotFoundError, SecurityError
 
 
 @dataclass
@@ -20,19 +20,19 @@ class FileSystemService:
     def __init__(self):
         self.content_root = Path('./content').resolve()
 
-    async def ensureContentRootExists(self):
+    async def ensure_content_root_exists(self):
         await asyncio.to_thread(self.content_root.mkdir, parents=True, exist_ok=True)
 
-    async def readFile(self, relativePath: str) -> str:
+    async def read_file(self, relativePath: str) -> str:
         absolute_path = (self.content_root / relativePath).resolve()
         if not str(absolute_path).startswith(str(self.content_root)):
             raise SecurityError("Access denied")
         if not await asyncio.to_thread(absolute_path.exists):
-            raise FileNotFoundError(f"File not found: {relativePath}")
+            raise ContentFileNotFoundError(f"File not found: {relativePath}")
         async with aiofiles.open(absolute_path, 'r') as f:
             return await f.read()
 
-    async def writeFile(self, relativePath: str, content: str):
+    async def write_file(self, relativePath: str, content: str):
         absolute_path = (self.content_root / relativePath).resolve()
         if not str(absolute_path).startswith(str(self.content_root)):
             raise SecurityError("Access denied")
@@ -40,51 +40,51 @@ class FileSystemService:
         async with aiofiles.open(absolute_path, 'w') as f:
             await f.write(content)
 
-    async def createDirectory(self, relativePath: str):
+    async def create_directory(self, relativePath: str):
         absolute_path = (self.content_root / relativePath).resolve()
         if not str(absolute_path).startswith(str(self.content_root)):
             raise SecurityError("Access denied")
         await asyncio.to_thread(absolute_path.mkdir, parents=True, exist_ok=True)
 
-    async def deleteFile(self, relativePath: str):
+    async def delete_file(self, relativePath: str):
         absolute_path = (self.content_root / relativePath).resolve()
         if not str(absolute_path).startswith(str(self.content_root)):
             raise SecurityError("Access denied")
         if not await asyncio.to_thread(absolute_path.exists) or not await asyncio.to_thread(absolute_path.is_file):
-            raise FileNotFoundError(f"File not found: {relativePath}")
+            raise ContentFileNotFoundError(f"File not found: {relativePath}")
         await asyncio.to_thread(absolute_path.unlink)
 
-    async def deleteDirectory(self, relativePath: str):
+    async def delete_directory(self, relativePath: str):
         absolute_path = (self.content_root / relativePath).resolve()
         if not str(absolute_path).startswith(str(self.content_root)):
             raise SecurityError("Access denied")
         if not await asyncio.to_thread(absolute_path.exists) or not await asyncio.to_thread(absolute_path.is_dir):
-            raise FileNotFoundError(f"Directory not found: {relativePath}")
+            raise ContentFileNotFoundError(f"Directory not found: {relativePath}")
         await asyncio.to_thread(shutil.rmtree, absolute_path)
 
-    async def renameItem(self, relativePath: str, newName: str):
+    async def rename_item(self, relativePath: str, newName: str):
         absolute_path = (self.content_root / relativePath).resolve()
         if not str(absolute_path).startswith(str(self.content_root)):
             raise SecurityError("Access denied")
         if not await asyncio.to_thread(absolute_path.exists):
-            raise FileNotFoundError(f"Item not found: {relativePath}")
+            raise ContentFileNotFoundError(f"Item not found: {relativePath}")
         new_absolute_path = absolute_path.parent / newName
         if not str(new_absolute_path).startswith(str(self.content_root)):
             raise SecurityError("Access denied")
         await asyncio.to_thread(absolute_path.rename, new_absolute_path)
 
-    async def pathExists(self, relativePath: str) -> bool:
+    async def path_exists(self, relativePath: str) -> bool:
         absolute_path = (self.content_root / relativePath).resolve()
         if not str(absolute_path).startswith(str(self.content_root)):
             raise SecurityError("Access denied")
         return await asyncio.to_thread(absolute_path.exists)
 
-    async def scanDirectory(self, relativePath: str) -> list[DirectoryScanResult]:
+    async def scan_directory(self, relativePath: str) -> list[DirectoryScanResult]:
         absolute_path = (self.content_root / relativePath).resolve()
         if not str(absolute_path).startswith(str(self.content_root)):
             raise SecurityError("Access denied")
         if not await asyncio.to_thread(absolute_path.exists) or not await asyncio.to_thread(absolute_path.is_dir):
-            raise FileNotFoundError(f"Directory not found: {relativePath}")
+            raise ContentFileNotFoundError(f"Directory not found: {relativePath}")
         items = await asyncio.to_thread(list, absolute_path.iterdir())
         results = []
         for item in items:

@@ -9,4 +9,8 @@ psycopg2-binary==2.9.10
 sqlalchemy==2.0.43
 alembic==1.16.5
 python-multipart==0.0.20
+aiofiles==23.2.1
+python-frontmatter==1.0.0
 PyYAML==6.0.3
+fastapi-cache2==0.2.1
+PyJWT==2.10.1

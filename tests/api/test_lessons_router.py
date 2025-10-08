@@ -9,8 +9,8 @@ from src.api.v1.lessons import router as lessons_router
 def mock_fs_service():
     """Mock FileSystemService."""
     service = MagicMock()
-    service.readFile = AsyncMock()
-    service.writeFile = AsyncMock()
+    service.read_file = AsyncMock()
+    service.write_file = AsyncMock()
     return service
 
 
@@ -71,8 +71,8 @@ class TestLessonsRawGet:
 
     def test_get_lesson_raw_not_found(self, client, mock_fs_service):
         """Test raw lesson retrieval for non-existent file."""
-        from src.core.errors import FileNotFoundError
-        mock_fs_service.readFile.side_effect = FileNotFoundError("Lesson not found")
+        from src.core.errors import ContentFileNotFoundError
+        mock_fs_service.readFile.side_effect = ContentFileNotFoundError("Lesson not found")
 
         response = client.get("/api/lessons/missing/raw")
 
@@ -125,9 +125,9 @@ class TestLessonsRawPut:
 
     def test_put_lesson_raw_write_error(self, client, mock_fs_service, mock_ulf_parser, mock_content_scanner):
         """Test raw lesson update with write error."""
-        from src.core.errors import FileNotFoundError
+        from src.core.errors import ContentFileNotFoundError
         mock_ulf_parser.parse.return_value = {"title": "Lesson", "cells": []}
-        mock_fs_service.writeFile.side_effect = FileNotFoundError("Cannot write")
+        mock_fs_service.writeFile.side_effect = ContentFileNotFoundError("Cannot write")
 
         content = '---\ntitle: Lesson\n---\n\nContent'
 

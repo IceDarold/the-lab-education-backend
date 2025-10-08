@@ -8,6 +8,7 @@ import fastapi.responses
 
 from src.core.config import settings
 from src.core.security import get_current_user, get_current_admin
+from src.core.utils import finalize_supabase_result
 from src.dependencies import get_fs_service, get_ulf_parser, get_content_scanner
 from src.schemas.lesson import LessonCompleteResponse, LessonContent
 from src.schemas.user import User
@@ -63,7 +64,7 @@ async def get_lesson_raw(slug: str, current_admin: User = Depends(get_current_ad
     try:
         lesson_path = _find_lesson_file(slug)
         relative_path = str(lesson_path.relative_to(Path(settings.CONTENT_ROOT)))
-        return await fs_service.readFile(relative_path)
+        return await fs_service.read_file(relative_path)
     except FileNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found") from None
 
@@ -88,7 +89,7 @@ async def update_lesson_raw(slug: str, content: str = Body(..., media_type="text
 
     # Overwrite the file
     try:
-        await fs_service.writeFile(relative_path, content)
+        await fs_service.write_file(relative_path, content)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -99,36 +100,30 @@ async def update_lesson_raw(slug: str, content: str = Body(..., media_type="text
     return {"message": "Lesson updated successfully"}
 
 
-async def _finalize(result: Any) -> Any:
-    execute = getattr(result, "execute", None)
-    if callable(execute):
-        result = execute()
-    if hasattr(result, "__await__"):
-        result = await result
-    return result
-
-
 @router.post("/{lesson_id}/complete", response_model=LessonCompleteResponse)
 async def complete_lesson(lesson_id: str, current_user: User = Depends(get_current_user)) -> LessonCompleteResponse:
     from src.db.session import get_supabase_client  # local import to avoid circular dependency
 
     supabase = get_supabase_client()
 
+    course_slug, lesson_slug = lesson_id.split('/', 1)
+
     progress_payload = {
         "user_id": str(current_user.user_id),
-        "lesson_id": lesson_id,
+        "course_slug": course_slug,
+        "lesson_slug": lesson_slug,
         "status": "completed",
     }
 
     upsert_action = supabase.table("user_lesson_progress").upsert(progress_payload)
-    await _finalize(upsert_action)
+    await finalize_supabase_result(upsert_action)
 
     rpc_payload = {
         "lesson_id": lesson_id,
         "user_id": str(current_user.user_id),
     }
 
-    rpc_response = await _finalize(supabase.rpc("calculate_course_progress", rpc_payload))
+    rpc_response = await finalize_supabase_result(supabase.rpc("calculate_course_progress", rpc_payload))
     rpc_data = getattr(rpc_response, "data", rpc_response) or {}
 
     new_percent = rpc_data.get("new_course_progress_percent")

@@ -10,13 +10,13 @@ from src.schemas.content_node import ContentNode
 def mock_fs_service():
     """Mock FileSystemService for integration tests."""
     service = MagicMock()
-    service.readFile = AsyncMock()
-    service.writeFile = AsyncMock()
-    service.createDirectory = AsyncMock()
-    service.deleteFile = AsyncMock()
-    service.deleteDirectory = AsyncMock()
-    service.pathExists = AsyncMock(return_value=True)
-    service.scanDirectory = AsyncMock(return_value=[])
+    service.read_file = AsyncMock()
+    service.write_file = AsyncMock()
+    service.create_directory = AsyncMock()
+    service.delete_file = AsyncMock()
+    service.delete_directory = AsyncMock()
+    service.path_exists = AsyncMock(return_value=True)
+    service.scan_directory = AsyncMock(return_value=[])
     return service
 
 
@@ -123,8 +123,8 @@ class TestAPIIntegration:
 
     def test_error_handling_integration(self, client, mock_fs_service):
         """Test error handling across the API."""
-        from src.core.errors import FileNotFoundError
-        mock_fs_service.readFile.side_effect = FileNotFoundError("File not found")
+        from src.core.errors import ContentFileNotFoundError
+        mock_fs_service.readFile.side_effect = ContentFileNotFoundError("File not found")
 
         # Test admin config file
         response = client.get("/api/admin/config-file?path=missing.yml")

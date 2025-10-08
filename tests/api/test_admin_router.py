@@ -11,11 +11,11 @@ from src.schemas.api import CreateCourseRequest, CreateModuleRequest, CreateLess
 def mock_fs_service():
     """Mock FileSystemService."""
     service = MagicMock()
-    service.readFile = AsyncMock()
-    service.writeFile = AsyncMock()
-    service.createDirectory = AsyncMock()
-    service.deleteFile = AsyncMock()
-    service.deleteDirectory = AsyncMock()
+    service.read_file = AsyncMock()
+    service.write_file = AsyncMock()
+    service.create_directory = AsyncMock()
+    service.delete_file = AsyncMock()
+    service.delete_directory = AsyncMock()
     return service
 
 
@@ -93,8 +93,8 @@ class TestAdminConfigFile:
 
     def test_get_config_file_not_found(self, client, mock_fs_service):
         """Test config file not found."""
-        from src.core.errors import FileNotFoundError
-        mock_fs_service.readFile.side_effect = FileNotFoundError("File not found")
+        from src.core.errors import ContentFileNotFoundError
+        mock_fs_service.readFile.side_effect = ContentFileNotFoundError("File not found")
 
         response = client.get("/api/admin/config-file?path=missing.yml")
 
@@ -212,8 +212,8 @@ class TestAdminDeleteItem:
 
     def test_delete_not_found(self, client, mock_fs_service, mock_content_scanner):
         """Test deletion of non-existent item."""
-        from src.core.errors import FileNotFoundError
-        mock_fs_service.deleteFile.side_effect = FileNotFoundError("Not found")
+        from src.core.errors import ContentFileNotFoundError
+        mock_fs_service.deleteFile.side_effect = ContentFileNotFoundError("Not found")
 
         response = client.delete("/api/admin/item?path=missing.yml")
 

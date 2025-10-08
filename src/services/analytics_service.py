@@ -2,13 +2,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from datetime import datetime, timedelta
 from collections import defaultdict
+from uuid import UUID
 from src.models.user_activity_log import UserActivityLog
 from src.schemas import TrackEventRequest
 
 
 class AnalyticsService:
     @staticmethod
-    async def get_activity_details(user_id: int, db: AsyncSession) -> list[dict]:
+    async def get_activity_details(user_id: UUID, db: AsyncSession) -> list[dict]:
         # Calculate the date one year ago
         one_year_ago = datetime.now() - timedelta(days=365)
 
@@ -54,7 +55,7 @@ class AnalyticsService:
         return activity_list
 
     @staticmethod
-    async def track_activity(user_id: int, event_data: TrackEventRequest, db: AsyncSession):
+    async def track_activity(user_id: UUID, event_data: TrackEventRequest, db: AsyncSession):
         # Create a new UserActivityLog instance
         activity_log = UserActivityLog(
             user_id=user_id,

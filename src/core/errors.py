@@ -1,5 +1,5 @@
-class FileNotFoundError(Exception):
-    """Raised when a file is not found in the file system."""
+class ContentFileNotFoundError(Exception):
+    """Raised when a content file is not found in the file system."""
     pass
 
 

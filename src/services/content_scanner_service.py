@@ -12,7 +12,7 @@ class ContentScannerService:
     @cached(cache=TTLCache(maxsize=1, ttl=3600))
     async def build_content_tree(self) -> list[ContentNode]:
         # Scan the root directory (assuming 'courses' is the root for content)
-        items = await self.fs_service.scanDirectory('courses')
+        items = await self.fs_service.scan_directory('courses')
         root_nodes = []
         for item in items:
             if item.type == 'directory':
@@ -22,7 +22,7 @@ class ContentScannerService:
         return root_nodes
 
     async def _build_node(self, path: str) -> ContentNode | None:
-        items = await self.fs_service.scanDirectory(path)
+        items = await self.fs_service.scan_directory(path)
         # Check for config files
         config_path = None
         node_type = None
@@ -39,7 +39,7 @@ class ContentScannerService:
 
         if config_path:
             try:
-                content = await self.fs_service.readFile(config_path)
+                content = await self.fs_service.read_file(config_path)
                 data = yaml.safe_load(content)
                 title = data.get('title', path.split('/')[-1])
             except Exception:
@@ -73,4 +73,3 @@ class ContentScannerService:
 
     def clear_cache(self):
         self.build_content_tree.cache_clear()
-        return node

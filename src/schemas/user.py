@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr
 
@@ -27,4 +28,14 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     newPassword: str
+
+
+class UserFilter(BaseModel):
+    search: Optional[str] = None
+    role: Optional[str] = None
+    status: Optional[str] = None
+    sort_by: str = "id"
+    sort_order: str = "asc"
+    skip: int = 0
+    limit: int = 10
 

@@ -1,20 +1,33 @@
 from uuid import UUID
 import logging
+from datetime import datetime, timedelta
 
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
+from src.core.config import settings
 from src.db.session import get_supabase_client, get_supabase_admin_client
 from src.schemas.user import User
 
 logger = logging.getLogger(__name__)
 
 
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    logger.info(f"Validating token: {token[:50]}...")
     supabase = get_supabase_client()
     try:
         response = supabase.auth.get_user(token)
@@ -35,23 +48,19 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    logger.info(f"User found: {getattr(user, 'id', 'unknown')}")
+    logger.info("User found")
 
     metadata = getattr(user, "user_metadata", {}) or {}
     full_name = metadata.get("full_name") or metadata.get("name") or metadata.get("fullName") or ""
 
     # Fetch role from profiles table
     user_id = str(getattr(user, "id"))
-    logger.info(f"Fetching profile for user_id: {user_id}")
+    logger.info("Fetching profile for user")
     try:
         admin_supabase = get_supabase_admin_client()
-        logger.info(f"Admin supabase client: {admin_supabase}")
         profile_response = admin_supabase.table("profiles").select("role").eq("id", user_id).execute()
-        logger.info(f"Profile response: {profile_response}")
         profile_data = getattr(profile_response, "data", []) or []
-        logger.info(f"Profile data: {profile_data}")
         role = profile_data[0].get("role", "student") if profile_data else "student"
-        logger.info(f"Profile role: {role}")
     except Exception as exc:
         logger.error(f"Profile query failed: {str(exc)}")
         logger.error(f"Exception type: {type(exc)}")

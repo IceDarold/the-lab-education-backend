@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
 from src.api.v1 import admin, auth, courses, dashboard, lessons, quizzes
-from src.core.errors import FileNotFoundError, SecurityError, ParsingError
+from src.core.errors import ContentFileNotFoundError, SecurityError, ParsingError
 from src.core.security import get_current_admin
 from src.dependencies import get_fs_service, get_content_scanner, get_ulf_parser
 
@@ -11,7 +11,7 @@ from src.dependencies import get_fs_service, get_content_scanner, get_ulf_parser
 app = FastAPI(title="ML-Practicum API")
 
 # Exception handlers
-app.add_exception_handler(FileNotFoundError, lambda request, exc: JSONResponse(status_code=404, content={"detail": "Not Found"}))
+app.add_exception_handler(ContentFileNotFoundError, lambda request, exc: JSONResponse(status_code=404, content={"detail": "Not Found"}))
 app.add_exception_handler(SecurityError, lambda request, exc: JSONResponse(status_code=403, content={"detail": "Forbidden"}))
 app.add_exception_handler(ParsingError, lambda request, exc: JSONResponse(status_code=400, content={"detail": "Bad Request"}))
 

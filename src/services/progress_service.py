@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime
+from uuid import UUID
 from src.models.user_lesson_progress import UserLessonProgress
 from src.models.user_activity_log import UserActivityLog
 from src.services.content_scanner_service import ContentScannerService
@@ -8,7 +9,7 @@ from src.services.content_scanner_service import ContentScannerService
 
 class ProgressService:
     @staticmethod
-    async def mark_lesson_as_complete(user_id: int, course_slug: str, lesson_slug: str, db: AsyncSession) -> None:
+    async def mark_lesson_as_complete(user_id: UUID, course_slug: str, lesson_slug: str, db: AsyncSession) -> None:
         # Check if UserLessonProgress exists
         stmt = select(UserLessonProgress).where(
             UserLessonProgress.user_id == user_id,
@@ -43,7 +44,7 @@ class ProgressService:
         await db.commit()
 
     @staticmethod
-    async def get_user_progress_for_course(user_id: int, course_slug: str, db: AsyncSession, content_service: ContentScannerService) -> dict:
+    async def get_user_progress_for_course(user_id: UUID, course_slug: str, db: AsyncSession, content_service: ContentScannerService) -> dict:
         # Get lesson slugs from content service
         lesson_slugs = await content_service.get_course_lesson_slugs(course_slug)
 
