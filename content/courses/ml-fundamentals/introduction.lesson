@@ -1,0 +1,154 @@
+---
+slug: ml-introduction
+title: What is Machine Learning?
+lesson_id: 323e4567-e89b-12d3-a456-426614174002
+course_slug: ml-fundamentals
+---
+
+# What is Machine Learning?
+
+Machine Learning is a subset of artificial intelligence that enables computers to learn and make decisions without being explicitly programmed for every scenario.
+
+## The Learning Process
+
+Machine learning algorithms build mathematical models based on training data to make predictions or decisions without being explicitly programmed to perform the task.
+
+## Types of Machine Learning
+
+### 1. Supervised Learning
+
+The algorithm learns from labeled training data. Each training example includes input features and the correct output.
+
+**Examples:**
+- Email spam detection
+- House price prediction
+- Medical diagnosis
+
+**Algorithms:**
+- Linear Regression
+- Decision Trees
+- Support Vector Machines
+- Neural Networks
+
+### 2. Unsupervised Learning
+
+The algorithm learns from unlabeled data, finding hidden patterns or structures in the data.
+
+**Examples:**
+- Customer segmentation
+- Anomaly detection
+- Topic modeling
+- Dimensionality reduction
+
+**Algorithms:**
+- K-Means Clustering
+- Principal Component Analysis (PCA)
+- Autoencoders
+
+### 3. Reinforcement Learning
+
+The algorithm learns through interaction with an environment, receiving rewards or penalties for actions.
+
+**Examples:**
+- Game playing (Chess, Go)
+- Robotics
+- Recommendation systems
+- Autonomous vehicles
+
+**Algorithms:**
+- Q-Learning
+- Deep Q Networks
+- Policy Gradient Methods
+
+## The Machine Learning Workflow
+
+### 1. Data Collection
+Gather relevant data for your problem. Quality and quantity of data are crucial for model performance.
+
+### 2. Data Preprocessing
+- Clean the data (handle missing values, outliers)
+- Feature engineering (create new features)
+- Data normalization/standardization
+- Train/validation/test splits
+
+### 3. Model Selection
+Choose appropriate algorithms based on:
+- Problem type (classification, regression, clustering)
+- Data characteristics
+- Computational resources
+- Interpretability requirements
+
+### 4. Model Training
+- Fit the model to training data
+- Tune hyperparameters
+- Use cross-validation to prevent overfitting
+
+### 5. Model Evaluation
+- Assess performance on validation/test data
+- Use appropriate metrics (accuracy, precision, recall, F1-score, etc.)
+- Compare different models
+
+### 6. Model Deployment
+- Integrate model into production systems
+- Monitor performance
+- Update model as new data becomes available
+
+## Key Concepts
+
+### Overfitting vs Underfitting
+
+**Overfitting:** Model performs well on training data but poorly on new data
+- Solution: Cross-validation, regularization, simpler models
+
+**Underfitting:** Model performs poorly on both training and new data
+- Solution: More complex models, better features, more data
+
+### Bias-Variance Tradeoff
+
+- **High Bias:** Model is too simple, misses important patterns
+- **High Variance:** Model is too complex, captures noise
+- Goal: Find optimal balance
+
+### Feature Engineering
+
+The process of creating new features or transforming existing ones to improve model performance:
+- Polynomial features
+- Interaction terms
+- Domain-specific transformations
+- Encoding categorical variables
+
+## Applications of Machine Learning
+
+### Computer Vision
+- Image classification
+- Object detection
+- Facial recognition
+- Medical image analysis
+
+### Natural Language Processing
+- Sentiment analysis
+- Language translation
+- Chatbots
+- Text summarization
+
+### Recommendation Systems
+- Product recommendations
+- Content personalization
+- Social network suggestions
+
+### Autonomous Systems
+- Self-driving cars
+- Robotics
+- Process automation
+
+## Getting Started
+
+To begin your machine learning journey:
+
+1. **Learn Python** - Primary language for ML
+2. **Master NumPy and Pandas** - Data manipulation libraries
+3. **Study Scikit-learn** - Essential ML library
+4. **Practice with datasets** - Kaggle, UCI Machine Learning Repository
+5. **Build projects** - Apply concepts to real problems
+
+Remember: Machine learning is both an art and a science. It requires understanding of algorithms, statistics, and domain knowledge.

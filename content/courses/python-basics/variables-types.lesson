@@ -1,0 +1,140 @@
+---
+slug: python-variables-types
+title: Variables and Data Types
+lesson_id: 223e4567-e89b-12d3-a456-426614174001
+course_slug: python-basics
+---
+
+# Variables and Data Types in Python
+
+Variables are containers for storing data values. Python has several built-in data types that we'll explore in this lesson.
+
+## Variables
+
+A variable is created the moment you first assign a value to it:
+
+```python
+# Variable assignment
+name = "Alice"
+age = 25
+height = 5.7
+is_student = True
+
+print(name)  # Output: Alice
+```
+
+### Variable Naming Rules
+
+- Must start with a letter or underscore
+- Can contain letters, numbers, and underscores
+- Case-sensitive (name ≠ Name)
+- Cannot use Python keywords
+
+## Data Types
+
+### Numbers
+
+```python
+# Integers
+x = 5
+y = -10
+
+# Floating point
+pi = 3.14159
+temperature = -5.5
+
+# Complex numbers
+z = 3 + 4j
+```
+
+### Strings
+
+```python
+# String literals
+name = "Python"
+message = 'Hello World!'
+
+# Multi-line strings
+poem = """Roses are red,
+Violets are blue,
+Python is awesome,
+And so are you!"""
+
+# String operations
+first_name = "John"
+last_name = "Doe"
+full_name = first_name + " " + last_name  # "John Doe"
+```
+
+### Booleans
+
+```python
+is_raining = True
+is_sunny = False
+
+# Boolean operations
+result = 5 > 3  # True
+is_adult = age >= 18  # Depends on age value
+```
+
+### Lists
+
+```python
+# Creating lists
+fruits = ["apple", "banana", "cherry"]
+numbers = [1, 2, 3, 4, 5]
+mixed = [1, "hello", True, 3.14]
+
+# Accessing elements
+first_fruit = fruits[0]  # "apple"
+last_number = numbers[-1]  # 5
+
+# Modifying lists
+fruits.append("orange")
+fruits[1] = "blueberry"
+```
+
+### Dictionaries
+
+```python
+# Creating dictionaries
+person = {
+    "name": "Alice",
+    "age": 25,
+    "city": "New York"
+}
+
+# Accessing values
+name = person["name"]  # "Alice"
+age = person.get("age")  # 25
+
+# Adding/modifying values
+person["email"] = "alice@example.com"
+person["age"] = 26
+```
+
+## Type Conversion
+
+```python
+# Convert to string
+str(123)  # "123"
+str(3.14)  # "3.14"
+
+# Convert to integer
+int("42")  # 42
+int(3.9)  # 3 (truncates)
+
+# Convert to float
+float("3.14")  # 3.14
+float(42)  # 42.0
+```
+
+## Practice Exercise
+
+Create variables for:
+1. Your name (string)
+2. Your age (integer)
+3. Your favorite programming languages (list)
+4. Your skills and proficiency levels (dictionary)
+
+Print all variables and their types using `type()` function.

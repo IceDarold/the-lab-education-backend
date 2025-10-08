@@ -1,0 +1,58 @@
+---
+slug: python-getting-started
+title: Getting Started with Python
+lesson_id: 123e4567-e89b-12d3-a456-426614174000
+course_slug: python-basics
+---
+
+# Welcome to Python Programming
+
+Python is a high-level, interpreted programming language known for its simplicity and readability.
+
+## What is Python?
+
+Python was created by Guido van Rossum and first released in 1991. It's designed to be easy to read and write, making it an excellent choice for beginners.
+
+## Key Features
+
+- **Simple Syntax**: Python uses indentation to define code blocks
+- **Interpreted Language**: No need to compile code before running
+- **Cross-platform**: Works on Windows, macOS, Linux
+- **Large Community**: Extensive libraries and frameworks available
+
+## Installation
+
+### Windows
+1. Download Python from python.org
+2. Run the installer
+3. Check "Add Python to PATH"
+4. Verify installation: `python --version`
+
+### macOS
+Python comes pre-installed on macOS, but you might want to use Homebrew:
+```bash
+brew install python
+```
+
+### Linux
+```bash
+sudo apt update
+sudo apt install python3
+```
+
+## Your First Python Program
+
+Create a file called `hello.py` and add this code:
+
+```python
+print("Hello, World!")
+```
+
+Run it with:
+```bash
+python hello.py
+```
+
+## Next Steps
+
+In the next lesson, we'll explore Python's basic data types and variables. Practice running the hello world program and experiment with different messages!

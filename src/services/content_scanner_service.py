@@ -1,4 +1,5 @@
 import yaml
+from typing import Optional
 from cachetools import cached, TTLCache
 
 from src.schemas.content_node import ContentNode
@@ -21,7 +22,7 @@ class ContentScannerService:
                     root_nodes.append(node)
         return root_nodes
 
-    async def _build_node(self, path: str) -> ContentNode | None:
+    async def _build_node(self, path: str) -> Optional[ContentNode]:
         items = await self.fs_service.scan_directory(path)
         # Check for config files
         config_path = None

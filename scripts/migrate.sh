@@ -139,6 +139,22 @@ generate_migration() {
         exit 1
     fi
 }
+# Function to seed database with test data
+seed_database() {
+    log_info "Seeding database with test data..."
+
+    if [ ! -f "scripts/seed_database.py" ]; then
+        log_error "Seed script not found: scripts/seed_database.py"
+        exit 1
+    fi
+
+    if python scripts/seed_database.py; then
+        log_success "Database seeding completed"
+    else
+        log_error "Database seeding failed"
+        exit 1
+    fi
+}
 
 # Main script logic
 case "${1:-apply}" in
@@ -159,6 +175,9 @@ case "${1:-apply}" in
         else
             log_error "Migration process failed"
             echo "You may need to rollback manually:"
+    "seed")
+        seed_database
+        ;;
             echo "alembic downgrade -1"
             exit 1
         fi
@@ -172,6 +191,7 @@ case "${1:-apply}" in
     "generate")
         generate_migration "$2"
         ;;
+  seed       Populate database with test data
     "help"|"-h"|"--help")
         echo "Database Migration Script"
         echo ""
