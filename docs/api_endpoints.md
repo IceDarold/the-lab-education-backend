@@ -41,7 +41,33 @@
   }
   ```
 
-#### **3. Получение данных о себе**
+#### **3. Обновление токенов**
+* **Эндпоинт:** `POST /auth/refresh`
+* **Назначение:** Обновление JWT токенов доступа с использованием refresh токена.
+* **Аутентификация:** Не требуется (работает с refresh токеном).
+* **Request Body (Схема `RefreshTokenRequest`):**
+  ```json
+  {
+    "refreshToken": "refresh.jwt.token"
+  }
+  ```
+* **Success Response (200 OK) (Схема `RefreshTokenResponse`):**
+  ```json
+  {
+    "access_token": "new.access.jwt.token",
+    "refresh_token": "new.refresh.jwt.token",
+    "token_type": "bearer",
+    "expires_in": 900,
+    "expires_at": 1640995200000
+  }
+  ```
+* **Error Responses:**
+  - `400 Bad Request`: Invalid refresh token format
+  - `401 Unauthorized`: Invalid or expired refresh token
+  - `429 Too Many Requests`: Rate limit exceeded
+  - `500 Internal Server Error`: Token generation failed
+
+#### **4. Получение данных о себе**
 * **Эндпоинт:** `GET /auth/me`
 * **Назначение:** Получение информации о текущем залогиненном пользователе.
 * **Аутентификация:** **Требуется (Bearer Token)**.
