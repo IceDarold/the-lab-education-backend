@@ -3,6 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.core.security import get_current_user
+from src.core.utils import finalize_supabase_result
 from src.db.session import get_supabase_client
 from src.schemas.course import CourseDetailsPublic, CoursePublic
 from src.schemas.user import User
@@ -10,21 +11,12 @@ from src.schemas.user import User
 router = APIRouter()
 
 
-async def _finalize(result):
-    execute = getattr(result, "execute", None)
-    if callable(execute):
-        result = execute()
-    if hasattr(result, "__await__"):
-        result = await result
-    return result
-
-
 @router.post("/{slug}/enroll", status_code=status.HTTP_201_CREATED)
 async def enroll_in_course(slug: str, current_user: User = Depends(get_current_user)) -> dict[str, str]:
     supabase = get_supabase_client()
 
     course_query = supabase.table("courses").select("id").eq("slug", slug).single()
-    course_response = await _finalize(course_query)
+    course_response = await finalize_supabase_result(course_query)
     course_data = getattr(course_response, "data", course_response)
 
     if not course_data:
@@ -40,7 +32,7 @@ async def enroll_in_course(slug: str, current_user: User = Depends(get_current_u
     }
 
     enroll_action = supabase.table("enrollments").insert(enrollment_payload)
-    await _finalize(enroll_action)
+    await finalize_supabase_result(enroll_action)
 
     return {"status": "enrolled"}
 
@@ -57,7 +49,7 @@ async def list_courses(
         .order("created_at", desc=True)
         .range(offset, offset + limit - 1)
     )
-    resp = await _finalize(query)
+    resp = await finalize_supabase_result(query)
     data = getattr(resp, "data", resp) or []
 
     normalized = []
@@ -78,7 +70,7 @@ async def list_courses(
 @router.get("/{slug}", response_model=CourseDetailsPublic)
 async def get_course_details(slug: str):
     supabase = get_supabase_client()
-    resp = await _finalize(supabase.rpc("get_public_course_details", {"slug": slug}))
+    resp = await finalize_supabase_result(supabase.rpc("get_public_course_details", {"slug": slug}))
     data = getattr(resp, "data", resp)
     if not data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")

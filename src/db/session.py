@@ -4,9 +4,8 @@ from src.core.config import settings
 
 def get_supabase_client() -> Client:
     """
-    Создаем клиент внутри функции, чтобы обеспечить совместимость с бессерверной
-    средой. Это гарантирует, что для каждого "холодного" вызова функции создается
-    новый, свежий клиент.
+    Create the client inside the function to ensure compatibility with the serverless
+    environment. This guarantees that for each "cold" function call, a new, fresh client is created.
     """
     url = settings.SUPABASE_URL
     key = settings.SUPABASE_KEY
@@ -15,8 +14,8 @@ def get_supabase_client() -> Client:
 
 def get_supabase_admin_client() -> Client:
     """
-    Создаем клиент с service role key для административных операций,
-    таких как проверка существования email без RLS ограничений.
+    Create a client with service role key for administrative operations,
+    such as checking email existence without RLS restrictions.
     """
     url = settings.SUPABASE_URL
     key = settings.SUPABASE_SERVICE_ROLE_KEY

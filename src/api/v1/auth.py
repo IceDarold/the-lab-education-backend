@@ -115,11 +115,10 @@ async def check_email(request: CheckEmailRequest):
     supabase = get_supabase_admin_client()
 
     try:
-        response = await _finalize_request(
-            supabase.auth.admin.list_users()
+        profile_response = await _finalize_request(
+            supabase.table("profiles").select("id").eq("email", request.email).execute()
         )
-        users = getattr(response, 'users', []) or []
-        exists = any(getattr(user, 'email', None) == request.email for user in users)
+        exists = bool(getattr(profile_response, "data", []))
         return {"exists": exists}
     except Exception as exc:
         raise HTTPException(
@@ -132,13 +131,12 @@ async def check_email(request: CheckEmailRequest):
 async def forgot_password(request: ForgotPasswordRequest):
     supabase = get_supabase_admin_client()
 
-    # Check if email exists in users
+    # Check if email exists in profiles
     try:
-        response = await _finalize_request(
-            supabase.auth.admin.list_users()
+        profile_response = await _finalize_request(
+            supabase.table("profiles").select("id").eq("email", request.email).execute()
         )
-        users = getattr(response, 'users', []) or []
-        exists = any(getattr(user, 'email', None) == request.email for user in users)
+        exists = bool(getattr(profile_response, "data", []))
         if not exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -185,7 +183,7 @@ async def reset_password(request: ResetPasswordRequest):
     # Update the password
     try:
         await _finalize_request(
-            supabase.auth.update_user({"password": request.newPassword})
+            supabase.auth.update_user({"password": request.new_password})
         )
         return {"message": "Password updated successfully"}
     except Exception as exc:

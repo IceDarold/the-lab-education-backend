@@ -1,0 +1,139 @@
+import pytest
+from fastapi.testclient import TestClient
+from fastapi import FastAPI
+from unittest.mock import AsyncMock, MagicMock
+from src.routers.analytics_router import router as analytics_router
+from src.schemas.analytics import TrackEventRequest
+from src.schemas import ActivityDetailsResponse, DailyActivity
+
+
+@pytest.fixture
+def mock_analytics_service():
+    """Mock AnalyticsService."""
+    service = MagicMock()
+    service.track_activity = AsyncMock()
+    service.get_activity_details = AsyncMock()
+    return service
+
+
+@pytest.fixture
+def mock_get_current_user():
+    """Mock get_current_user dependency."""
+    user = MagicMock()
+    user.id = "test-user-id"
+    return user
+
+
+@pytest.fixture
+def mock_get_db():
+    """Mock get_db dependency."""
+    return AsyncMock()
+
+
+@pytest.fixture
+def test_app(mock_analytics_service, mock_get_current_user, mock_get_db):
+    """Create test FastAPI app with mocked dependencies."""
+    app = FastAPI()
+    app.include_router(analytics_router)
+
+    # Override dependencies
+    app.dependency_overrides = {
+        "src.dependencies.get_db": lambda: mock_get_db,
+        "src.dependencies.get_current_user": lambda: mock_get_current_user,
+        "src.services.analytics_service.AnalyticsService.track_activity": mock_analytics_service.track_activity,
+        "src.services.analytics_service.AnalyticsService.get_activity_details": mock_analytics_service.get_activity_details,
+    }
+    return app
+
+
+@pytest.fixture
+def client(test_app):
+    """Test client."""
+    return TestClient(test_app)
+
+
+class TestAnalyticsRouter:
+    def test_track_user_activity_success(self, client, mock_analytics_service, mock_get_current_user, mock_get_db):
+        """Test successful activity tracking."""
+        request_data = {
+            "activity_type": "LESSON_COMPLETED",
+            "details": {"lesson_slug": "test-lesson", "course_slug": "test-course"}
+        }
+
+        response = client.post("/activity-log", json=request_data)
+
+        assert response.status_code == 202
+        # Should not return content, just 202 Accepted
+        assert response.content == b""
+        mock_analytics_service.track_activity.assert_called_once_with(
+            user_id=mock_get_current_user.id,
+            event_data=TrackEventRequest(**request_data),
+            db=mock_get_db
+        )
+
+    def test_track_user_activity_minimal_data(self, client, mock_analytics_service, mock_get_current_user, mock_get_db):
+        """Test activity tracking with minimal data (no details)."""
+        request_data = {
+            "activity_type": "LOGIN"
+        }
+
+        response = client.post("/activity-log", json=request_data)
+
+        assert response.status_code == 202
+        mock_analytics_service.track_activity.assert_called_once_with(
+            user_id=mock_get_current_user.id,
+            event_data=TrackEventRequest(activity_type="LOGIN", details=None),
+            db=mock_get_db
+        )
+
+    def test_track_user_activity_invalid_data(self, client):
+        """Test activity tracking with invalid data."""
+        request_data = {
+            "invalid_field": "value"
+        }
+
+        response = client.post("/activity-log", json=request_data)
+
+        assert response.status_code == 422  # Validation error
+
+    def test_get_user_activity_details_success(self, client, mock_analytics_service, mock_get_current_user, mock_get_db):
+        """Test successful retrieval of activity details."""
+        mock_activities = [
+            {"date": "2023-10-01", "LOGIN": 2, "LESSON_COMPLETED": 1},
+            {"date": "2023-10-02", "QUIZ_ATTEMPT": 3}
+        ]
+        mock_analytics_service.get_activity_details.return_value = mock_activities
+
+        response = client.get("/activity-log")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "activities" in data
+        assert len(data["activities"]) == 2
+        assert data["activities"][0]["date"] == "2023-10-01"
+        assert data["activities"][0]["LOGIN"] == 2
+        assert data["activities"][0]["LESSON_COMPLETED"] == 1
+        mock_analytics_service.get_activity_details.assert_called_once_with(
+            mock_get_current_user.id, mock_get_db
+        )
+
+    def test_get_user_activity_details_empty(self, client, mock_analytics_service, mock_get_current_user, mock_get_db):
+        """Test retrieval of activity details when no activities exist."""
+        mock_analytics_service.get_activity_details.return_value = []
+
+        response = client.get("/activity-log")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["activities"] == []
+        mock_analytics_service.get_activity_details.assert_called_once_with(
+            mock_get_current_user.id, mock_get_db
+        )
+
+    def test_get_user_activity_details_service_error(self, client, mock_analytics_service):
+        """Test activity details retrieval with service error."""
+        mock_analytics_service.get_activity_details.side_effect = Exception("Database error")
+
+        response = client.get("/activity-log")
+
+        assert response.status_code == 500

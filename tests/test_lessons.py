@@ -1,5 +1,6 @@
 import asyncio
 from pathlib import Path
+from unittest.mock import MagicMock, AsyncMock, patch
 from uuid import UUID
 
 import pytest
@@ -111,3 +112,153 @@ async def test_get_lesson_parse_error(tmp_path, monkeypatch):
     app.dependency_overrides.pop(get_current_user, None)
     assert response.status_code == 500
 
+
+@pytest.mark.asyncio
+async def test_complete_lesson_success():
+    app.dependency_overrides[get_current_user] = _override_user
+
+    with patch('src.db.session.get_supabase_client') as mock_get_client:
+        mock_supabase = MagicMock()
+        mock_get_client.return_value = mock_supabase
+
+        # Mock upsert
+        mock_upsert_result = MagicMock()
+        mock_upsert_result.execute = MagicMock(return_value=AsyncMock(return_value={"data": None}))
+        mock_supabase.table.return_value.upsert.return_value = mock_upsert_result
+
+        # Mock rpc
+        mock_rpc_result = AsyncMock(return_value={"data": {"new_course_progress_percent": 75}})
+        mock_supabase.rpc.return_value = mock_rpc_result
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/api/v1/lessons/sample-course/sample-lesson/complete",
+                headers={"Authorization": "Bearer token"},
+            )
+
+    app.dependency_overrides.pop(get_current_user, None)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["new_course_progress_percent"] == 75
+
+
+@pytest.mark.asyncio
+async def test_complete_lesson_invalid_format_no_slash():
+    app.dependency_overrides[get_current_user] = _override_user
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/v1/lessons/invalidlessonid/complete",
+            headers={"Authorization": "Bearer token"},
+        )
+
+    app.dependency_overrides.pop(get_current_user, None)
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert "Invalid lesson_id format" in payload["detail"]
+
+
+@pytest.mark.asyncio
+async def test_complete_lesson_invalid_format_empty_parts():
+    app.dependency_overrides[get_current_user] = _override_user
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/v1/lessons//sample-lesson/complete",
+            headers={"Authorization": "Bearer token"},
+        )
+
+    app.dependency_overrides.pop(get_current_user, None)
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert "Invalid lesson_id format" in payload["detail"]
+
+
+@pytest.mark.asyncio
+async def test_complete_lesson_upsert_failure():
+    app.dependency_overrides[get_current_user] = _override_user
+
+    with patch('src.db.session.get_supabase_client') as mock_get_client:
+        mock_supabase = MagicMock()
+        mock_get_client.return_value = mock_supabase
+
+        # Mock upsert to raise exception
+        mock_upsert_result = MagicMock()
+        mock_upsert_result.execute = MagicMock(return_value=AsyncMock(side_effect=Exception("Upsert failed")))
+        mock_supabase.table.return_value.upsert.return_value = mock_upsert_result
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/api/v1/lessons/sample-course/sample-lesson/complete",
+                headers={"Authorization": "Bearer token"},
+            )
+
+    app.dependency_overrides.pop(get_current_user, None)
+
+    assert response.status_code == 500  # Assuming internal server error for db failures
+
+
+@pytest.mark.asyncio
+async def test_complete_lesson_rpc_failure():
+    app.dependency_overrides[get_current_user] = _override_user
+
+    with patch('src.db.session.get_supabase_client') as mock_get_client:
+        mock_supabase = MagicMock()
+        mock_get_client.return_value = mock_supabase
+
+        # Mock upsert success
+        mock_upsert_result = MagicMock()
+        mock_upsert_result.execute = MagicMock(return_value=AsyncMock(return_value={"data": None}))
+        mock_supabase.table.return_value.upsert.return_value = mock_upsert_result
+
+        # Mock rpc to raise exception
+        mock_supabase.rpc.return_value = AsyncMock(side_effect=Exception("RPC failed"))
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/api/v1/lessons/sample-course/sample-lesson/complete",
+                headers={"Authorization": "Bearer token"},
+            )
+
+    app.dependency_overrides.pop(get_current_user, None)
+
+    assert response.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_complete_lesson_missing_progress_data():
+    app.dependency_overrides[get_current_user] = _override_user
+
+    with patch('src.db.session.get_supabase_client') as mock_get_client:
+        mock_supabase = MagicMock()
+        mock_get_client.return_value = mock_supabase
+
+        # Mock upsert
+        mock_upsert_result = MagicMock()
+        mock_upsert_result.execute = MagicMock(return_value=AsyncMock(return_value={"data": None}))
+        mock_supabase.table.return_value.upsert.return_value = mock_upsert_result
+
+        # Mock rpc with missing progress data
+        mock_rpc_result = AsyncMock(return_value={"data": {}})
+        mock_supabase.rpc.return_value = mock_rpc_result
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/api/v1/lessons/sample-course/sample-lesson/complete",
+                headers={"Authorization": "Bearer token"},
+            )
+
+    app.dependency_overrides.pop(get_current_user, None)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["new_course_progress_percent"] == 0  # Defaults to 0

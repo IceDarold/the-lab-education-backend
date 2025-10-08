@@ -1,67 +1,94 @@
 from uuid import UUID
 import logging
+from datetime import datetime, timedelta
 
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
+from src.core.config import settings
 from src.db.session import get_supabase_client, get_supabase_admin_client
 from src.schemas.user import User
 
 logger = logging.getLogger(__name__)
 
 
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire, "type": "access"})
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+
+def create_refresh_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(days=7)  # Default 7 days
+    to_encode.update({"exp": expire, "type": "refresh"})
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+
+def verify_refresh_token(token: str):
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        token_type = payload.get("type")
+        if token_type != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expired")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    logger.info(f"Validating token: {token[:50]}...")
-    supabase = get_supabase_client()
     try:
-        response = supabase.auth.get_user(token)
-        logger.info("Token validation successful")
-    except Exception as exc:  # pragma: no cover - defensive against SDK internals
-        logger.error(f"Token validation failed: {str(exc)}")
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        token_type = payload.get("type")
+        if token_type != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        user_id = payload.get("sub")
+        email = payload.get("email")
+        if not user_id or not email:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
+            detail="Token expired",
             headers={"WWW-Authenticate": "Bearer"},
-        ) from exc
-
-    user = getattr(response, "user", None)
-    if not user:
-        logger.error("No user found in response")
+        )
+    except jwt.JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    logger.info(f"User found: {getattr(user, 'id', 'unknown')}")
 
-    metadata = getattr(user, "user_metadata", {}) or {}
-    full_name = metadata.get("full_name") or metadata.get("name") or metadata.get("fullName") or ""
-
-    # Fetch role from profiles table
-    user_id = str(getattr(user, "id"))
-    logger.info(f"Fetching profile for user_id: {user_id}")
-    try:
-        admin_supabase = get_supabase_admin_client()
-        logger.info(f"Admin supabase client: {admin_supabase}")
-        profile_response = admin_supabase.table("profiles").select("role").eq("id", user_id).execute()
-        logger.info(f"Profile response: {profile_response}")
-        profile_data = getattr(profile_response, "data", []) or []
-        logger.info(f"Profile data: {profile_data}")
-        role = profile_data[0].get("role", "student") if profile_data else "student"
-        logger.info(f"Profile role: {role}")
-    except Exception as exc:
-        logger.error(f"Profile query failed: {str(exc)}")
-        logger.error(f"Exception type: {type(exc)}")
-        role = "student"
-
+    # For now, return basic user info from token
+    # TODO: Fetch full profile from database
     return User(
         user_id=UUID(user_id),
-        full_name=full_name,
-        email=getattr(user, "email"),
-        role=role,
+        full_name="",  # Would fetch from DB
+        email=email,
+        role="student",  # Would fetch from DB
     )
 
 
