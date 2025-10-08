@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
 from fastapi.responses import PlainTextResponse
 
 from src.core.security import get_current_admin
-from src.dependencies import get_fs_service, get_content_scanner
+from src.dependencies import get_fs_service, get_content_scanner, validate_content_size, validate_safe_path
 from src.schemas.api import CreateCourseRequest, CreateModuleRequest, CreateLessonRequest
 from src.schemas.user import User
 from src.schemas.content_node import ContentNode
@@ -25,6 +25,9 @@ async def get_config_file(
     current_user: User = Depends(get_current_admin),
     fs_service: FileSystemService = Depends(get_fs_service)
 ):
+    # Validate path for security
+    validate_safe_path(path)
+
     try:
         content = await fs_service.read_file(path)
         return PlainTextResponse(content)
@@ -40,6 +43,10 @@ async def update_config_file(
     fs_service: FileSystemService = Depends(get_fs_service),
     cs_service: ContentScannerService = Depends(get_content_scanner)
 ):
+    # Validate path for security
+    validate_safe_path(path)
+
+    await fs_service.write_file(path, content)
     await fs_service.write_file(path, content)
     cs_service.clear_cache()
     return {"status": "updated"}
@@ -125,6 +132,10 @@ async def create_item(
 @router.delete("/item", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(
     path: str = Query(..., description="Path to the item to delete"),
+    # Validate path for security
+    validate_safe_path(path)
+
+    try:
     current_user: User = Depends(get_current_admin),
     fs_service: FileSystemService = Depends(get_fs_service),
     cs_service: ContentScannerService = Depends(get_content_scanner)

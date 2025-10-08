@@ -3,10 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from uuid import UUID
+import os
 
 import yaml
 
 from src.schemas.lesson import LessonCell, LessonContent
+
+
+# Cache for parsed lesson files: path -> (mtime, LessonContent)
+_lesson_cache: Dict[str, Tuple[float, LessonContent]] = {}
 
 
 class ULFParseError(Exception):
@@ -76,6 +81,13 @@ def parse_lesson_file(path: Path) -> LessonContent:
     if not path.exists():
         raise FileNotFoundError(path)
 
+    path_str = str(path)
+    mtime = path.stat().st_mtime
+    if path_str in _lesson_cache:
+        cached_mtime, cached_content = _lesson_cache[path_str]
+        if cached_mtime == mtime:
+            return cached_content
+
     raw_text = path.read_text(encoding="utf-8")
     front_matter, body = _split_front_matter(raw_text)
     metadata = _parse_yaml(front_matter, error_message="Invalid front matter in lesson file")
@@ -101,7 +113,7 @@ def parse_lesson_file(path: Path) -> LessonContent:
     known_keys = {"slug", "lesson_slug", "title", "lesson_id", "id", "course_slug"}
     extra_metadata = {k: v for k, v in metadata.items() if k not in known_keys}
 
-    return LessonContent(
+    result = LessonContent(
         slug=str(slug),
         title=str(title),
         course_slug=str(course_slug) if course_slug else None,
@@ -109,6 +121,8 @@ def parse_lesson_file(path: Path) -> LessonContent:
         metadata=extra_metadata,
         cells=cells,
     )
+    _lesson_cache[path_str] = (mtime, result)
+    return result
 
 
 def _split_front_matter(raw_text: str) -> Tuple[str, str]:

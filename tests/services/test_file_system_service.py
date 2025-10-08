@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 from src.services.file_system_service import FileSystemService, DirectoryScanResult
-from src.core.errors import SecurityError
+from src.core.errors import ContentFileNotFoundError, FileSystemOperationError, SecurityError
 
 
 pytestmark = pytest.mark.asyncio
@@ -19,9 +19,16 @@ class TestFileSystemService:
         content = await self.service.read_file('test.txt')
         assert content == 'Hello World'
 
-    async def test_read_non_existent_file_raises_file_not_found_error(self):
-        with pytest.raises(FileNotFoundError):
+    async def test_read_non_existent_file_raises_content_file_not_found_error(self):
+        with pytest.raises(ContentFileNotFoundError):
             await self.service.read_file('nonexistent.txt')
+
+    async def test_read_file_raises_file_system_operation_error_on_os_error(self, mocker, caplog):
+        await self.service.write_file('test.txt', 'content')
+        mocker.patch('aiofiles.open', side_effect=OSError("Permission denied"))
+        with pytest.raises(FileSystemOperationError):
+            await self.service.read_file('test.txt')
+        assert any("Failed to read_file: test.txt" in record.message for record in caplog.records if record.levelname == 'ERROR')
 
     async def test_recursive_create_directory(self):
         await self.service.create_directory('a/b/c')

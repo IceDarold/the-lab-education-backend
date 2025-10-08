@@ -11,3 +11,31 @@ class SecurityError(Exception):
 class ParsingError(Exception):
     """Raised when parsing fails."""
     pass
+class FileSystemOperationError(Exception):
+    """Raised when file system operations fail unexpectedly."""
+    pass
+
+
+class AuthenticationError(Exception):
+    """Raised when authentication fails."""
+    pass
+
+
+class AuthorizationError(Exception):
+    """Raised when authorization fails."""
+    pass
+
+
+class ValidationError(Exception):
+    """Raised when input validation fails."""
+    pass
+
+
+class DatabaseError(Exception):
+    """Raised when database operations fail."""
+    pass
+
+
+class ExternalServiceError(Exception):
+    """Raised when external service calls fail."""
+    pass
