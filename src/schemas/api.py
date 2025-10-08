@@ -9,10 +9,10 @@ class CreateCourseRequest(BaseModel):
 class CreateModuleRequest(BaseModel):
     title: str
     slug: str
-    parentSlug: str
+    parent_slug: str
 
 
 class CreateLessonRequest(BaseModel):
     title: str
     slug: str
-    parentSlug: str
+    parent_slug: str

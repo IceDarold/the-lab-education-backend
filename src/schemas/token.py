@@ -8,7 +8,7 @@ class Token(BaseModel):
 
 
 class RefreshTokenRequest(BaseModel):
-    refreshToken: str
+    refresh_token: str
 
 
 class RefreshTokenResponse(BaseModel):

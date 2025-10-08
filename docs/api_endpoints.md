@@ -48,7 +48,7 @@
 * **Request Body (Схема `RefreshTokenRequest`):**
   ```json
   {
-    "refreshToken": "refresh.jwt.token"
+    "refresh_token": "refresh.jwt.token"
   }
   ```
 * **Success Response (200 OK) (Схема `RefreshTokenResponse`):**
@@ -122,7 +122,7 @@
   ```json
   {
     "token": "recovery_token",
-    "newPassword": "newpassword123"
+    "new_password": "newpassword123"
   }
   ```
 * **Success Response (200 OK):**
@@ -360,7 +360,7 @@
       "name": "course-slug",
       "path": "courses/course-slug",
       "children": [...],
-      "configPath": "courses/course-slug/_course.yml"
+      "config_path": "courses/course-slug/_course.yml"
     }
   ]
   ```

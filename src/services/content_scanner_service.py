@@ -49,7 +49,7 @@ class ContentScannerService:
             type=node_type,
             name=title,
             path=path,
-            configPath=config_path
+            config_path=config_path
         )
 
         # Add children

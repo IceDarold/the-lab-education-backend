@@ -27,7 +27,7 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    newPassword: str
+    new_password: str
 
 
 class UserFilter(BaseModel):

@@ -147,7 +147,7 @@ class TestAdminCreateItem:
 
     def test_create_module_success(self, client, mock_fs_service, mock_content_scanner):
         """Test successful module creation."""
-        request_data = {"title": "New Module", "slug": "new-module", "parentSlug": "parent-course"}
+        request_data = {"title": "New Module", "slug": "new-module", "parent_slug": "parent-course"}
 
         response = client.post("/api/admin/create/module", json=request_data)
 
@@ -160,7 +160,7 @@ class TestAdminCreateItem:
 
     def test_create_lesson_success(self, client, mock_fs_service, mock_content_scanner):
         """Test successful lesson creation."""
-        request_data = {"title": "New Lesson", "slug": "new-lesson", "parentSlug": "parent-module"}
+        request_data = {"title": "New Lesson", "slug": "new-lesson", "parent_slug": "parent-module"}
 
         response = client.post("/api/admin/create/lesson", json=request_data)
 

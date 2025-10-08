@@ -31,13 +31,13 @@ class TestContentScannerService:
                 type='course',
                 name='Course 1',
                 path='courses/course1',
-                configPath='courses/course1/_course.yml',
+                config_path='courses/course1/_course.yml',
                 children=[
                     ContentNode(
                         type='module',
                         name='Module 1',
                         path='courses/course1/module1',
-                        configPath='courses/course1/module1/_module.yml',
+                        config_path='courses/course1/module1/_module.yml',
                         children=[
                             ContentNode(
                                 type='lesson',
@@ -55,7 +55,7 @@ class TestContentScannerService:
                         type='module',
                         name='Module 2',
                         path='courses/course1/module2',
-                        configPath='courses/course1/module2/_module.yml',
+                        config_path='courses/course1/module2/_module.yml',
                         children=[
                             ContentNode(
                                 type='lesson',
@@ -70,7 +70,7 @@ class TestContentScannerService:
                 type='course',
                 name='Course 2',
                 path='courses/course2',
-                configPath='courses/course2/_course.yml',
+                config_path='courses/course2/_course.yml',
                 children=[
                     ContentNode(
                         type='lesson',
@@ -86,7 +86,7 @@ class TestContentScannerService:
         assert result[0].type == 'course'
         assert result[0].name == 'Course 1'
         assert result[0].path == 'courses/course1'
-        assert result[0].configPath == 'courses/course1/_course.yml'
+        assert result[0].config_path == 'courses/course1/_course.yml'
         assert len(result[0].children) == 2
 
         # Module 1

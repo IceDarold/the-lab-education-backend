@@ -79,14 +79,14 @@ async def refresh_token(
     """Refresh access token using refresh token"""
     try:
         # Verify refresh token
-        payload = verify_refresh_token(request_data.refreshToken)
+        payload = verify_refresh_token(request_data.refresh_token)
         user_id = payload.get("sub")
 
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
 
         # Check if session exists and is active
-        token_hash = SessionService.hash_refresh_token(request_data.refreshToken)
+        token_hash = SessionService.hash_refresh_token(request_data.refresh_token)
         session = await SessionService.get_session_by_token_hash(db, token_hash)
 
         if not session:

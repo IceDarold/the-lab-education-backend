@@ -66,7 +66,7 @@ async def create_item(
     elif item_type == "module":
         if not isinstance(request, CreateModuleRequest):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request for module")
-        path = f"courses/{request.parentSlug}/{request.slug}"
+        path = f"courses/{request.parent_slug}/{request.slug}"
         await fs_service.create_directory(path)
         config_path = f"{path}/_module.yml"
         config_content = f"title: {request.title}\n"
@@ -82,7 +82,7 @@ async def create_item(
         for node in tree:
             if node.type == 'course':
                 for child in node.children or []:
-                    if child.type == 'module' and child.name == request.parentSlug:
+                    if child.type == 'module' and child.name == request.parent_slug:
                         parent_path = child.path
                         course_slug = node.name
                         break

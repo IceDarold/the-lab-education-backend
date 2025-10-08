@@ -183,7 +183,7 @@ async def reset_password(request: ResetPasswordRequest):
     # Update the password
     try:
         await _finalize_request(
-            supabase.auth.update_user({"password": request.newPassword})
+            supabase.auth.update_user({"password": request.new_password})
         )
         return {"message": "Password updated successfully"}
     except Exception as exc:

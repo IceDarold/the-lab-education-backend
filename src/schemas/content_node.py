@@ -10,4 +10,4 @@ class ContentNode(BaseModel):
     name: str
     path: str
     children: List[ContentNode] = []
-    configPath: Optional[str] = None
+    config_path: Optional[str] = None
