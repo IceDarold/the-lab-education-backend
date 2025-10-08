@@ -6,3 +6,8 @@ class FileNotFoundError(Exception):
 class SecurityError(Exception):
     """Raised when a security violation occurs in file system operations."""
     pass
+
+
+class ParsingError(Exception):
+    """Raised when parsing fails."""
+    pass

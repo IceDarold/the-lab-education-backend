@@ -5,9 +5,15 @@ from pydantic import BaseModel, Field
 
 
 class LessonCell(BaseModel):
-    cell_type: str
+    type: str
     content: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    config: Dict[str, Any] = Field(default_factory=dict)
+
+
+class Lesson(BaseModel):
+    title: str
+    description: Optional[str] = None
+    cells: List[LessonCell] = Field(default_factory=list)
 
 
 class LessonContent(BaseModel):
