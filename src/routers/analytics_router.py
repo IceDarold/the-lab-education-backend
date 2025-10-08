@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.schemas import TrackEventRequest
+from typing import List
+from src.schemas import TrackEventRequest, ActivityDetailsResponse
 from src.dependencies import get_db, get_current_user
 from src.models.user import User
 from src.services.analytics_service import AnalyticsService
@@ -24,3 +25,10 @@ async def track_user_activity(
     )
     # Return immediately with 202 Accepted
     return
+@router.get("", response_model=ActivityDetailsResponse)
+async def get_user_activity_details(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ActivityDetailsResponse:
+    activities = await AnalyticsService.get_activity_details(current_user.id, db)
+    return ActivityDetailsResponse(activities=activities)

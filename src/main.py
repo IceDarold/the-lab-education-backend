@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
 from src.api.v1 import admin, auth, courses, dashboard, lessons, quizzes
-from src.api.v1 import auth, courses, dashboard, lessons, quizzes
 from src.core.errors import FileNotFoundError, SecurityError, ParsingError
 from src.core.security import get_current_admin
 from src.dependencies import get_fs_service, get_content_scanner, get_ulf_parser
@@ -33,8 +32,6 @@ def root():
 
 # Routers
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
-# Routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(courses.router, prefix="/api/v1/courses", tags=["courses"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])

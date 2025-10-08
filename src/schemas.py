@@ -5,13 +5,13 @@ from src.models.user_activity_log import ActivityTypeEnum
 
 
 class UserCreate(BaseModel):
-    fullName: str
+    full_name: str
     email: str
     password: str
 
 
 class UserUpdate(BaseModel):
-    fullName: Optional[str] = None
+    full_name: Optional[str] = None
     email: Optional[str] = None
     role: Optional[str] = None
     status: Optional[str] = None
@@ -19,11 +19,11 @@ class UserUpdate(BaseModel):
 
 class UserResponse(BaseModel):
     id: int
-    fullName: str
+    full_name: str
     email: str
     role: str
     status: str
-    registrationDate: datetime
+    registration_date: datetime
 
 
 class Token(BaseModel):
@@ -46,3 +46,25 @@ class UsersListResponse(BaseModel):
 class TrackEventRequest(BaseModel):
     activity_type: ActivityTypeEnum
     details: Dict[str, Any] | None = None
+
+
+class UserFilter(BaseModel):
+    search: str | None = None
+    role: str | None = None
+    status: str | None = None
+    sort_by: str = "registration_date"
+    sort_order: str = "desc"
+    skip: int = 0
+    limit: int = 100
+
+
+class DailyActivity(BaseModel):
+    date: str
+    LOGIN: Optional[int] = None
+    LESSON_COMPLETED: Optional[int] = None
+    QUIZ_ATTEMPT: Optional[int] = None
+    CODE_EXECUTION: Optional[int] = None
+
+
+class ActivityDetailsResponse(BaseModel):
+    activities: List[DailyActivity]

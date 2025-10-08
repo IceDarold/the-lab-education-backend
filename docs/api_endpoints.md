@@ -54,6 +54,57 @@
     "email": "alexey.p@email.com"
   }
   ```
+#### **4. Проверка существования email**
+* **Эндпоинт:** `POST /auth/check-email`
+* **Назначение:** Проверить, существует ли email в системе.
+* **Аутентификация:** Не требуется.
+* **Request Body (Схема `CheckEmailRequest`):**
+  ```json
+  {
+    "email": "user@example.com"
+  }
+  ```
+* **Success Response (200 OK):**
+  ```json
+  {
+    "exists": true
+  }
+  ```
+
+#### **5. Запрос на сброс пароля**
+* **Эндпоинт:** `POST /auth/forgot-password`
+* **Назначение:** Отправить email для сброса пароля.
+* **Аутентификация:** Не требуется.
+* **Request Body (Схема `ForgotPasswordRequest`):**
+  ```json
+  {
+    "email": "user@example.com"
+  }
+  ```
+* **Success Response (200 OK):**
+  ```json
+  {
+    "message": "Password reset email sent"
+  }
+  ```
+
+#### **6. Сброс пароля**
+* **Эндпоинт:** `POST /auth/reset-password`
+* **Назначение:** Сбросить пароль с использованием токена.
+* **Аутентификация:** Не требуется.
+* **Request Body (Схема `ResetPasswordRequest`):**
+  ```json
+  {
+    "token": "recovery_token",
+    "newPassword": "newpassword123"
+  }
+  ```
+* **Success Response (200 OK):**
+  ```json
+  {
+    "message": "Password updated successfully"
+  }
+  ```
 
 ---
 
@@ -218,5 +269,145 @@
     "correct_answer_id": "uuid-a-1"
   }
   ```
+#### **4. Получение сырого контента урока (Админ)**
+* **Эндпоинт:** `GET /lessons/{slug}/raw`
+* **Назначение:** Получить сырой текст файла урока.
+* **Аутентификация:** **Требуется (Админ)**.
+* **Request Body:** Нет.
+* **Success Response (200 OK):** Текст файла.
+
+#### **5. Обновление сырого контента урока (Админ)**
+* **Эндпоинт:** `PUT /lessons/{slug}/raw`
+* **Назначение:** Обновить сырой текст файла урока.
+* **Аутентификация:** **Требуется (Админ)**.
+* **Request Body:** Текст файла.
+* **Success Response (200 OK):**
+  ```json
+  {
+    "message": "Lesson updated successfully"
+  }
+  ```
+---
+
+### **Ресурс: `Analytics` (Аналитика)**
+* **Роутер:** `/activity-log`
+
+#### **1. Отправка события активности**
+* **Эндпоинт:** `POST /activity-log`
+* **Назначение:** Зарегистрировать событие пользовательской активности (асинхронно).
+* **Аутентификация:** **Требуется**.
+* **Request Body (Схема `TrackEventRequest`):**
+  ```json
+  {
+    "activity_type": "LESSON_COMPLETED",
+    "details": {
+      "lesson_slug": "python-syntax",
+      "course_slug": "python-basics"
+    }
+  }
+  ```
+* **Success Response (202 Accepted):** Пустое тело ответа.
+
+#### **2. Получение статистики активности пользователя**
+* **Эндпоинт:** `GET /activity-log`
+* **Назначение:** Получить агрегированную статистику активности пользователя за последний год.
+* **Аутентификация:** **Требуется**.
+* **Request Body:** Нет.
+* **Success Response (200 OK) (Схема `ActivityDetailsResponse`):**
+  ```json
+  {
+---
+
+### **Ресурс: `Admin` (Администрирование)**
+* **Роутер:** `/api/admin`
+
+#### **1. Получение дерева контента**
+* **Эндпоинт:** `GET /api/admin/content-tree`
+* **Назначение:** Получить дерево структуры контента.
+* **Аутентификация:** **Требуется (Админ)**.
+* **Request Body:** Нет.
+* **Success Response (200 OK) (Список схем ContentNode):**
+  ```json
+  [
+    {
+      "type": "course",
+      "name": "course-slug",
+      "path": "courses/course-slug",
+      "children": [...],
+      "configPath": "courses/course-slug/_course.yml"
+    }
+  ]
+  ```
+
+#### **2. Получение конфигурационного файла**
+* **Эндпоинт:** `GET /api/admin/config-file?path=...`
+* **Назначение:** Получить содержимое конфигурационного файла.
+* **Аутентификация:** **Требуется (Админ)**.
+* **Request Body:** Нет.
+* **Success Response (200 OK):** Текст файла.
+
+#### **3. Обновление конфигурационного файла**
+* **Эндпоинт:** `PUT /api/admin/config-file?path=...`
+* **Назначение:** Обновить содержимое конфигурационного файла.
+* **Аутентификация:** **Требуется (Админ)**.
+* **Request Body:** Текст файла.
+* **Success Response (200 OK):**
+  ```json
+  {
+    "status": "updated"
+  }
+  ```
+
+#### **4. Создание элемента контента**
+* **Эндпоинт:** `POST /api/admin/create/{item_type}`
+* **Назначение:** Создать курс, модуль или урок.
+* **Аутентификация:** **Требуется (Админ)**.
+* **Request Body:** Зависит от item_type (CreateCourseRequest, etc.)
+* **Success Response (201 Created):**
+  ```json
+  {
+    "status": "created"
+  }
+  ```
+
+#### **5. Удаление элемента контента**
+* **Эндпоинт:** `DELETE /api/admin/item?path=...`
+* **Назначение:** Удалить элемент контента.
+* **Аутентификация:** **Требуется (Админ)**.
+* **Request Body:** Нет.
+* **Success Response (204 No Content):**
+
+---
+    "activities": [
+      {
+        "date": "2024-10-01",
+        "LESSON_COMPLETED": 3,
+        "QUIZ_ATTEMPT": 1
+      },
+      {
+        "date": "2024-10-02",
+        "LOGIN": 2,
+        "CODE_EXECUTION": 5
+      }
+    ]
+  }
+  ```
+
+
+---
+
+### **Корневой эндпоинт**
+* **Эндпоинт:** `GET /`
+* **Назначение:** Проверка статуса API.
+* **Аутентификация:** Не требуется.
+* **Request Body:** Нет.
+* **Success Response (200 OK):**
+  ```json
+  {
+    "status": "ok"
+  }
+  ```
+
+---
 
 Эта структура эндпоинтов логически разделяет публичную и приватную части, четко определяет потоки данных и предоставляет фронтенду всю необходимую информацию для рендеринга страниц.

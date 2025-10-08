@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from src.services.user_service import UserService, UserNotFoundException, IncorrectPasswordException
 from src.models.user import User
 from src.schemas.user import UserCreate
+from src.schemas import UserFilter
 
 
 pytestmark = pytest.mark.asyncio
@@ -19,7 +20,7 @@ class TestUserService:
         user = MagicMock(spec=User)
         user.id = 1
         user.email = "test@example.com"
-        user.fullName = "Test User"
+        user.full_name = "Test User"
         user.hashed_password = "hashed_password"
         user.role = "STUDENT"
         user.status = "ACTIVE"
@@ -58,7 +59,7 @@ class TestUserService:
         created_user = MagicMock(spec=User)
         created_user.id = 1
         created_user.email = "test@example.com"
-        created_user.fullName = "Test User"
+        created_user.full_name = "Test User"
         created_user.hashed_password = "hashed_password"
         created_user.role = "STUDENT"
         created_user.status = "ACTIVE"
@@ -67,7 +68,7 @@ class TestUserService:
         result = await UserService.create_user(user_data, mock_db)
 
         # Assert
-        assert result.fullName == "Test User"
+        assert result.full_name == "Test User"
         assert result.email == "test@example.com"
         assert result.hashed_password != "password123"  # Should be hashed
         mock_db.add.assert_called_once()
@@ -120,7 +121,7 @@ class TestUserService:
         mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db)
+        result = await UserService.list_users(mock_db, UserFilter())
 
         # Assert
         assert len(result) == 1
@@ -132,7 +133,7 @@ class TestUserService:
         mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, search="Test")
+        result = await UserService.list_users(mock_db, UserFilter(search="Test"))
 
         # Assert
         assert len(result) == 1
@@ -143,7 +144,7 @@ class TestUserService:
         mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, role="STUDENT")
+        result = await UserService.list_users(mock_db, UserFilter(role="STUDENT"))
 
         # Assert
         assert len(result) == 1
@@ -154,7 +155,7 @@ class TestUserService:
         mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, status="ACTIVE")
+        result = await UserService.list_users(mock_db, UserFilter(status="ACTIVE"))
 
         # Assert
         assert len(result) == 1
@@ -165,7 +166,7 @@ class TestUserService:
         mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, sort_by="email", sort_order="desc")
+        result = await UserService.list_users(mock_db, UserFilter(sort_by="email", sort_order="desc"))
 
         # Assert
         assert len(result) == 1
@@ -176,7 +177,7 @@ class TestUserService:
         mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, sort_by="fullName", sort_order="asc")
+        result = await UserService.list_users(mock_db, UserFilter(sort_by="full_name", sort_order="asc"))
 
         # Assert
         assert len(result) == 1
@@ -187,7 +188,7 @@ class TestUserService:
         mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, skip=10, limit=5)
+        result = await UserService.list_users(mock_db, UserFilter(skip=10, limit=5))
 
         # Assert
         assert len(result) == 1
@@ -198,7 +199,7 @@ class TestUserService:
         mock_db.execute.return_value.scalars.return_value.all.return_value = []
 
         # Act
-        result = await UserService.list_users(mock_db)
+        result = await UserService.list_users(mock_db, UserFilter())
 
         # Assert
         assert result == []
@@ -208,7 +209,7 @@ class TestUserService:
         mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, sort_by="invalid_field")
+        result = await UserService.list_users(mock_db, UserFilter(sort_by="invalid_field"))
 
         # Assert
         assert len(result) == 1

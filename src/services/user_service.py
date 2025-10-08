@@ -3,6 +3,8 @@ from sqlalchemy import select, or_, desc, asc
 from passlib.context import CryptContext
 from src.models.user import User
 from src.schemas.user import UserCreate
+from src.schemas import UserFilter
+import uuid
 
 
 class UserNotFoundException(Exception):
@@ -23,17 +25,28 @@ class UserService:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def create_user(user_data: UserCreate, db: AsyncSession) -> User:
+    async def _create_user_base(user_data: UserCreate, db: AsyncSession, user_id: str | None = None) -> User:
         hashed_password = UserService.pwd_context.hash(user_data.password)
-        user = User(
-            fullName=user_data.full_name,
-            email=user_data.email,
-            hashed_password=hashed_password
-        )
+        user_kwargs = {
+            "full_name": user_data.full_name,
+            "email": user_data.email,
+            "hashed_password": hashed_password
+        }
+        if user_id:
+            user_kwargs["id"] = uuid.UUID(user_id)
+        user = User(**user_kwargs)
         db.add(user)
         await db.commit()
         await db.refresh(user)
         return user
+
+    @staticmethod
+    async def create_user(user_data: UserCreate, db: AsyncSession) -> User:
+        return await UserService._create_user_base(user_data, db)
+
+    @staticmethod
+    async def create_user_with_id(user_id: str, user_data: UserCreate, db: AsyncSession) -> User:
+        return await UserService._create_user_base(user_data, db, user_id)
 
     @staticmethod
     async def authenticate_user(email: str, password: str, db: AsyncSession) -> User | None:
@@ -43,30 +56,21 @@ class UserService:
         return user
 
     @staticmethod
-    async def list_users(
-        db: AsyncSession,
-        search: str | None = None,
-        role: str | None = None,
-        status: str | None = None,
-        sort_by: str = "registrationDate",
-        sort_order: str = "desc",
-        skip: int = 0,
-        limit: int = 100
-    ) -> list[User]:
+    async def list_users(db: AsyncSession, filters: UserFilter) -> list[User]:
         query = select(User)
-        if search:
+        if filters.search:
             query = query.where(
                 or_(
-                    User.fullName.ilike(f"%{search}%"),
-                    User.email.ilike(f"%{search}%")
+                    User.full_name.ilike(f"%{filters.search}%"),
+                    User.email.ilike(f"%{filters.search}%")
                 )
             )
-        if role:
-            query = query.where(User.role == role)
-        if status:
-            query = query.where(User.status == status)
-        order_func = desc if sort_order == "desc" else asc
-        query = query.order_by(order_func(getattr(User, sort_by)))
-        query = query.offset(skip).limit(limit)
+        if filters.role:
+            query = query.where(User.role == filters.role)
+        if filters.status:
+            query = query.where(User.status == filters.status)
+        order_func = desc if filters.sort_order == "desc" else asc
+        query = query.order_by(order_func(getattr(User, filters.sort_by)))
+        query = query.offset(filters.skip).limit(filters.limit)
         result = await db.execute(query)
         return result.scalars().all()
