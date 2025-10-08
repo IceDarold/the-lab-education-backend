@@ -8,6 +8,7 @@ import fastapi.responses
 
 from src.core.config import settings
 from src.core.security import get_current_user, get_current_admin
+from src.dependencies import get_fs_service, get_ulf_parser, get_content_scanner
 from src.schemas.lesson import LessonCompleteResponse, LessonContent
 from src.schemas.user import User
 from src.services.ulf_parser import ULFParseError, parse_lesson_file, parse_lesson_file_from_text
@@ -57,9 +58,8 @@ async def get_lesson_content(slug: str, current_user: User = Depends(get_current
 
 
 @router.get("/{slug}/raw", response_class=fastapi.responses.PlainTextResponse)
-async def get_lesson_raw(slug: str, current_admin: User = Depends(get_current_admin)) -> str:
+async def get_lesson_raw(slug: str, current_admin: User = Depends(get_current_admin), fs_service: FileSystemService = Depends(get_fs_service)) -> str:
     del current_admin
-    fs_service = FileSystemService()
     try:
         lesson_path = _find_lesson_file(slug)
         relative_path = str(lesson_path.relative_to(Path(settings.CONTENT_ROOT)))
@@ -69,11 +69,8 @@ async def get_lesson_raw(slug: str, current_admin: User = Depends(get_current_ad
 
 
 @router.put("/{slug}/raw")
-async def update_lesson_raw(slug: str, content: str = Body(..., media_type="text/plain"), current_admin: User = Depends(get_current_admin)) -> dict:
+async def update_lesson_raw(slug: str, content: str = Body(..., media_type="text/plain"), current_admin: User = Depends(get_current_admin), fs_service: FileSystemService = Depends(get_fs_service), ulf_service: ULFParserService = Depends(get_ulf_parser), cs_service: ContentScannerService = Depends(get_content_scanner)) -> dict:
     del current_admin
-    fs_service = FileSystemService()
-    ulf_service = ULFParserService()
-    cs_service = ContentScannerService(fs_service)
     try:
         lesson_path = _find_lesson_file(slug)
         relative_path = str(lesson_path.relative_to(Path(settings.CONTENT_ROOT)))

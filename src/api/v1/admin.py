@@ -4,28 +4,27 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
 from fastapi.responses import PlainTextResponse
 
 from src.core.security import get_current_admin
-from src.services.content_scanner_service import ContentScannerService
-from src.services.file_system_service import FileSystemService
+from src.dependencies import get_fs_service, get_content_scanner
 from src.schemas.api import CreateCourseRequest, CreateModuleRequest, CreateLessonRequest
 from src.schemas.user import User
 from src.schemas.content_node import ContentNode
+from src.services.content_scanner_service import ContentScannerService
+from src.services.file_system_service import FileSystemService
 
 router = APIRouter()
 
 
 @router.get("/content-tree", response_model=list[ContentNode])
-async def get_content_tree(current_user: User = Depends(get_current_admin)):
-    fs_service = FileSystemService()
-    cs_service = ContentScannerService(fs_service)
+async def get_content_tree(current_user: User = Depends(get_current_admin), cs_service: ContentScannerService = Depends(get_content_scanner)):
     return await cs_service.build_content_tree()
 
 
 @router.get("/config-file", response_class=PlainTextResponse)
 async def get_config_file(
     path: str = Query(..., description="Path to the config file"),
-    current_user: User = Depends(get_current_admin)
+    current_user: User = Depends(get_current_admin),
+    fs_service: FileSystemService = Depends(get_fs_service)
 ):
-    fs_service = FileSystemService()
     try:
         content = await fs_service.readFile(path)
         return PlainTextResponse(content)
@@ -37,10 +36,10 @@ async def get_config_file(
 async def update_config_file(
     path: str = Query(..., description="Path to the config file"),
     content: str = Body(..., media_type="text/plain"),
-    current_user: User = Depends(get_current_admin)
+    current_user: User = Depends(get_current_admin),
+    fs_service: FileSystemService = Depends(get_fs_service),
+    cs_service: ContentScannerService = Depends(get_content_scanner)
 ):
-    fs_service = FileSystemService()
-    cs_service = ContentScannerService(fs_service)
     await fs_service.writeFile(path, content)
     cs_service.clear_cache()
     return {"status": "updated"}
@@ -50,10 +49,10 @@ async def update_config_file(
 async def create_item(
     item_type: str,
     request: Union[CreateCourseRequest, CreateModuleRequest, CreateLessonRequest],
-    current_user: User = Depends(get_current_admin)
+    current_user: User = Depends(get_current_admin),
+    fs_service: FileSystemService = Depends(get_fs_service),
+    cs_service: ContentScannerService = Depends(get_content_scanner)
 ):
-    fs_service = FileSystemService()
-    cs_service = ContentScannerService(fs_service)
 
     if item_type == "course":
         if not isinstance(request, CreateCourseRequest):
@@ -126,10 +125,10 @@ async def create_item(
 @router.delete("/item", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(
     path: str = Query(..., description="Path to the item to delete"),
-    current_user: User = Depends(get_current_admin)
+    current_user: User = Depends(get_current_admin),
+    fs_service: FileSystemService = Depends(get_fs_service),
+    cs_service: ContentScannerService = Depends(get_content_scanner)
 ):
-    fs_service = FileSystemService()
-    cs_service = ContentScannerService(fs_service)
     try:
         if await fs_service.pathExists(path):
             # Check if directory or file

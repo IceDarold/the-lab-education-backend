@@ -44,10 +44,10 @@ def test_app(mock_fs_service, mock_ulf_parser, mock_content_scanner, mock_get_cu
 
     # Override dependencies
     app.dependency_overrides = {
-        "src.api.v1.lessons.get_fs_service": lambda: mock_fs_service,
-        "src.api.v1.lessons.get_ulf_parser": lambda: mock_ulf_parser,
-        "src.api.v1.lessons.get_content_scanner": lambda: mock_content_scanner,
-        "src.api.v1.lessons.get_current_admin": lambda: mock_get_current_admin,
+        "src.dependencies.get_fs_service": lambda: mock_fs_service,
+        "src.dependencies.get_ulf_parser": lambda: mock_ulf_parser,
+        "src.dependencies.get_content_scanner": lambda: mock_content_scanner,
+        "src.core.security.get_current_admin": lambda: mock_get_current_admin,
     }
     return app
 

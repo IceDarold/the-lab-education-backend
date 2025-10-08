@@ -6,21 +6,7 @@ from src.api.v1 import admin, auth, courses, dashboard, lessons, quizzes
 from src.api.v1 import auth, courses, dashboard, lessons, quizzes
 from src.core.errors import FileNotFoundError, SecurityError, ParsingError
 from src.core.security import get_current_admin
-from src.services.file_system_service import FileSystemService
-from src.services.content_scanner_service import ContentScannerService
-from src.services.ulf_parser_service import ULFParserService
-
-
-def get_fs_service() -> FileSystemService:
-    return FileSystemService()
-
-
-def get_content_scanner(fs: FileSystemService = Depends(get_fs_service)) -> ContentScannerService:
-    return ContentScannerService(fs)
-
-
-def get_ulf_parser() -> ULFParserService:
-    return ULFParserService()
+from src.dependencies import get_fs_service, get_content_scanner, get_ulf_parser
 
 
 app = FastAPI(title="ML-Practicum API")
