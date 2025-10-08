@@ -176,4 +176,66 @@ class TestAPIIntegration:
         client.delete("/api/admin/item?path=crud-course/_course.yml")
 
         # Verify cache cleared multiple times
+        # Verify cache cleared multiple times
+        assert mock_content_scanner.clear_cache.call_count == 3
+
+    def test_track_activity_success(self, client):
+        """Test successful activity tracking returns 202."""
+        # Mock authenticated user
+        from unittest.mock import patch
+        with patch('src.dependencies.get_current_user') as mock_get_user:
+            mock_user = MagicMock()
+            mock_user.id = 1
+            mock_get_user.return_value = mock_user
+
+            # Mock database session
+            with patch('src.dependencies.get_db') as mock_get_db:
+                mock_db = AsyncMock()
+                mock_get_db.return_value = mock_db
+
+                # Include analytics router in test app
+                from src.routers.analytics_router import router as analytics_router
+                client.app.include_router(analytics_router, prefix="/api")
+
+                # Test successful tracking
+                response = client.post("/api/activity-log", json={
+                    "activity_type": "LESSON_COMPLETED",
+                    "details": {"lesson_slug": "test-lesson", "course_slug": "test-course"}
+                })
+
+                assert response.status_code == 202
+                # Verify background task would be called (can't easily test background tasks in TestClient)
+
+    def test_track_activity_unauthenticated(self, client):
+        """Test activity tracking without authentication returns 401."""
+        # Include analytics router
+        from src.routers.analytics_router import router as analytics_router
+        client.app.include_router(analytics_router, prefix="/api")
+
+        response = client.post("/api/activity-log", json={
+            "activity_type": "LOGIN"
+        })
+
+        assert response.status_code == 401
+
+    def test_track_activity_invalid_data(self, client):
+        """Test activity tracking with invalid data returns 422."""
+        # Mock authenticated user
+        from unittest.mock import patch
+        with patch('src.dependencies.get_current_user') as mock_get_user:
+            mock_user = MagicMock()
+            mock_user.id = 1
+            mock_get_user.return_value = mock_user
+
+            # Include analytics router
+            from src.routers.analytics_router import router as analytics_router
+            client.app.include_router(analytics_router, prefix="/api")
+
+            # Test invalid activity_type
+            response = client.post("/api/activity-log", json={
+                "activity_type": "INVALID_TYPE",
+                "details": {"key": "value"}
+            })
+
+            assert response.status_code == 422
         assert mock_content_scanner.clear_cache.call_count == 3
