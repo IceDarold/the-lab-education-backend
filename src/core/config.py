@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     # Default settings
     ALGORITHM: str = "HS256"
     CONTENT_ROOT: str = "content"
+    EMAIL_CHECK_DELIVERABILITY: bool = True
 
 
 settings = Settings()

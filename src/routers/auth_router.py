@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -245,9 +246,8 @@ async def refresh_token(
         logger.debug(f"Session updated for user: {user_id}")
 
         # Calculate expiration times
-        from datetime import datetime
         expires_in = 15 * 60  # 15 minutes
-        expires_at = int((datetime.utcnow().timestamp() + expires_in) * 1000)
+        expires_at = int((datetime.now(UTC).timestamp() + expires_in) * 1000)
 
         logger.info(f"Token refresh successful for user: {user_id}")
         return RefreshTokenResponse(

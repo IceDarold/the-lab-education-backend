@@ -74,7 +74,7 @@ async def create_item(
         try:
             request = CreateCourseRequest(**request_body)
         except Exception as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
         path = f"courses/{request.slug}"
         await fs_service.create_directory(path)
         config_path = f"{path}/_course.yml"
@@ -85,7 +85,7 @@ async def create_item(
         try:
             request = CreateModuleRequest(**request_body)
         except Exception as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
         path = f"courses/{request.parent_slug}/{request.slug}"
         await fs_service.create_directory(path)
         config_path = f"{path}/_module.yml"
@@ -96,7 +96,7 @@ async def create_item(
         try:
             request = CreateLessonRequest(**request_body)
         except Exception as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
         tree = await cs_service.build_content_tree()
         parent_path = None
         course_slug = None

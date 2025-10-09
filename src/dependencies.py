@@ -47,7 +47,7 @@ def validate_content_size(content: str, max_size_mb: int = 10) -> str:
 
     if content_size > max_size_bytes:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=f"Content size ({content_size} bytes) exceeds maximum allowed size ({max_size_bytes} bytes)"
         )
 

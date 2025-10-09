@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from src.models.profile import Profile
 from src.core.errors import DatabaseError, ValidationError
 from src.core.logging import get_logger
+from src.core.utils import maybe_await
 import uuid
 
 logger = get_logger(__name__)
@@ -38,7 +39,7 @@ class ProfileService:
             )
 
             if db:
-                db.add(profile)
+                await maybe_await(db.add(profile))
                 await db.commit()
                 await db.refresh(profile)
             else:
@@ -78,7 +79,7 @@ class ProfileService:
 
             query = select(Profile).where(Profile.id == profile_uuid)
             result = await db.execute(query)
-            profile = result.scalar_one_or_none()
+            profile = await maybe_await(result.scalar_one_or_none())
             if profile:
                 logger.debug(f"Profile found: {profile_id}")
             else:

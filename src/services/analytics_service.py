@@ -69,5 +69,5 @@ class AnalyticsService:
             details=event_data.details
         )
         # Add to session and commit
-        db.add(activity_log)
+        await maybe_await(db.add(activity_log))
         await db.commit()

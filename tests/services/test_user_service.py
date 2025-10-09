@@ -21,7 +21,7 @@ class TestUserService:
         user.id = 1
         user.email = "test@example.com"
         user.full_name = "Test User"
-        user.hashed_password = UserService.pwd_context.hash("password123")
+        user.hashed_password = UserService.hash_password("password123")
         user.role = "STUDENT"
         user.status = "ACTIVE"
         return user

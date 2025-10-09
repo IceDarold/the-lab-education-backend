@@ -29,7 +29,7 @@ class TestSessionService:
         session.is_active = True
         return session
 
-    def test_hash_refresh_token(self):
+    async def test_hash_refresh_token(self):
         # Arrange
         token = "test_refresh_token"
 

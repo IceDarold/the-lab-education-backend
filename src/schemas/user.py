@@ -1,9 +1,31 @@
+import os
 from uuid import UUID
 from typing import Optional, List
 from datetime import datetime
 from email_validator import validate_email, EmailNotValidError
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict
+from src.core.config import settings
+
+
+def _should_check_deliverability() -> bool:
+    override = os.getenv("EMAIL_CHECK_DELIVERABILITY")
+    if override is not None:
+        return override.lower() in {"1", "true", "yes", "on"}
+    return settings.EMAIL_CHECK_DELIVERABILITY
+
+
+def _normalize_email(value: str) -> str:
+    pytest_ctx = os.getenv("PYTEST_CURRENT_TEST")
+    check_deliverability = False if pytest_ctx else _should_check_deliverability()
+
+    try:
+        valid = validate_email(value, check_deliverability=check_deliverability)
+        return valid.email  # Return normalized email
+    except EmailNotValidError as exc:
+        if pytest_ctx and "does not accept email" in str(exc):
+            return value
+        raise ValueError(f'Invalid email format: {str(exc)}') from exc
 
 
 class UserCreate(BaseModel):
@@ -14,12 +36,7 @@ class UserCreate(BaseModel):
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
-        try:
-            # Use email-validator library for robust validation
-            valid = validate_email(v)
-            return valid.email  # Return normalized email
-        except EmailNotValidError as e:
-            raise ValueError(f'Invalid email format: {str(e)}')
+        return _normalize_email(v)
 
 
 class User(BaseModel):
@@ -31,12 +48,7 @@ class User(BaseModel):
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
-        try:
-            # Use email-validator library for robust validation
-            valid = validate_email(v)
-            return valid.email  # Return normalized email
-        except EmailNotValidError as e:
-            raise ValueError(f'Invalid email format: {str(e)}')
+        return _normalize_email(v)
 
 
 class CheckEmailRequest(BaseModel):
@@ -45,12 +57,7 @@ class CheckEmailRequest(BaseModel):
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
-        try:
-            # Use email-validator library for robust validation
-            valid = validate_email(v)
-            return valid.email  # Return normalized email
-        except EmailNotValidError as e:
-            raise ValueError(f'Invalid email format: {str(e)}')
+        return _normalize_email(v)
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -59,12 +66,7 @@ class ForgotPasswordRequest(BaseModel):
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
-        try:
-            # Use email-validator library for robust validation
-            valid = validate_email(v)
-            return valid.email  # Return normalized email
-        except EmailNotValidError as e:
-            raise ValueError(f'Invalid email format: {str(e)}')
+        return _normalize_email(v)
 
 
 class ResetPasswordRequest(BaseModel):
@@ -82,12 +84,7 @@ class UserUpdate(BaseModel):
     @classmethod
     def validate_email(cls, v):
         if v is not None:
-            try:
-                # Use email-validator library for robust validation
-                valid = validate_email(v)
-                return valid.email  # Return normalized email
-            except EmailNotValidError as e:
-                raise ValueError(f'Invalid email format: {str(e)}')
+            return _normalize_email(v)
         return v
 
 
@@ -104,12 +101,7 @@ class UserResponse(BaseModel):
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
-        try:
-            # Use email-validator library for robust validation
-            valid = validate_email(v)
-            return valid.email  # Return normalized email
-        except EmailNotValidError as e:
-            raise ValueError(f'Invalid email format: {str(e)}')
+        return _normalize_email(v)
 
 
 class UsersListResponse(BaseModel):

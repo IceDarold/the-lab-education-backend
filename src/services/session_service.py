@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Optional
 from uuid import UUID
 
@@ -41,7 +41,7 @@ class SessionService:
             if expires_delta is None:
                 expires_delta = timedelta(days=7)
 
-            expires_at = datetime.utcnow() + expires_delta
+            expires_at = datetime.now(UTC) + expires_delta
             token_hash = SessionService.hash_refresh_token(refresh_token)
 
             session = UserSession(
@@ -52,7 +52,7 @@ class SessionService:
                 expires_at=expires_at
             )
 
-            db.add(session)
+            await maybe_await(db.add(session))
             await db.commit()
             await db.refresh(session)
             logger.info(f"Successfully created session for user: {user_id}")
@@ -77,7 +77,7 @@ class SessionService:
             query = select(UserSession).where(
                 UserSession.refresh_token_hash == token_hash,
                 UserSession.is_active == True,
-                UserSession.expires_at > datetime.utcnow()
+                UserSession.expires_at > datetime.now(UTC)
             )
             result = await db.execute(query)
             session = await maybe_await(result.scalar_one_or_none())
@@ -151,7 +151,7 @@ class SessionService:
         try:
             query = (
                 update(UserSession)
-                .where(UserSession.expires_at <= datetime.utcnow(), UserSession.is_active == True)
+                .where(UserSession.expires_at <= datetime.now(UTC), UserSession.is_active == True)
                 .values(is_active=False)
             )
             result = await db.execute(query)

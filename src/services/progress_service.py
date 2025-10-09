@@ -44,7 +44,7 @@ class ProgressService:
                     lesson_slug=lesson_slug,
                     completion_date=datetime.now()
                 )
-                db.add(progress)
+                await maybe_await(db.add(progress))
             else:
                 # Update existing completion_date
                 logger.debug(f"Updating existing progress record for user {user_id}")
@@ -56,7 +56,7 @@ class ProgressService:
                 activity_type='LESSON_COMPLETED',
                 details={'lesson_slug': lesson_slug, 'course_slug': course_slug}
             )
-            db.add(activity_log)
+            await maybe_await(db.add(activity_log))
 
             # Commit all changes
             await db.commit()

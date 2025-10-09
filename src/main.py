@@ -1,4 +1,6 @@
-from fastapi import FastAPI, Depends
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Depends, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from slowapi.middleware import SlowAPIMiddleware
@@ -17,24 +19,13 @@ from src.core.rate_limiting import limiter
 from src.dependencies import get_fs_service, get_content_scanner, get_ulf_parser
 
 
-app = FastAPI(title="ML-Practicum API")
-
-# Expose limiter on application state so SlowAPI middleware can access it.
-app.state.limiter = limiter
-app.state.limiter.logger = app_logger
-
-# Setup logging
-app_logger.info("Starting ML-Practicum API")
-
-
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """
     Validate critical environment variables on startup.
     This ensures the app fails fast if required configuration is missing.
     """
     try:
-        # Validate that critical settings are loaded
         if not settings.SECRET_KEY:
             raise ValueError("SECRET_KEY environment variable is required")
         if not settings.DATABASE_URL:
@@ -43,10 +34,20 @@ async def startup_event():
         app_logger.info("Environment validation successful")
         app_logger.info(f"Database URL configured: {settings.DATABASE_URL[:20]}...")
         app_logger.info("Application startup complete")
-
-    except Exception as e:
-        app_logger.error(f"Startup validation failed: {e}")
+        yield
+    except Exception as exc:
+        app_logger.error(f"Startup validation failed: {exc}")
         raise
+
+
+app = FastAPI(title="ML-Practicum API", lifespan=lifespan)
+
+# Expose limiter on application state so SlowAPI middleware can access it.
+app.state.limiter = limiter
+app.state.limiter.logger = app_logger
+
+# Setup logging
+app_logger.info("Starting ML-Practicum API")
 
 # Add request ID middleware
 app.add_middleware(RequestIDMiddleware)
@@ -64,6 +65,26 @@ app.add_exception_handler(ValidationError, lambda request, exc: JSONResponse(sta
 app.add_exception_handler(DatabaseError, lambda request, exc: JSONResponse(status_code=500, content={"detail": "Database operation failed", "error_code": "DATABASE_ERROR"}))
 app.add_exception_handler(ExternalServiceError, lambda request, exc: JSONResponse(status_code=502, content={"detail": "External service unavailable", "error_code": "EXTERNAL_SERVICE_ERROR"}))
 app.add_exception_handler(RateLimitExceeded, lambda request, exc: JSONResponse(status_code=429, content={"detail": "Too many requests", "error_code": "RATE_LIMIT_EXCEEDED"}))
+app.add_exception_handler(
+    RequestValidationError,
+    lambda request, exc: _handle_validation_error(request, exc)
+)
+
+
+def _handle_validation_error(request, exc: RequestValidationError):
+    raw_errors = exc.errors()
+    normalized_errors = []
+    for error in raw_errors:
+        ctx = error.get("ctx")
+        if ctx and "error" in ctx and isinstance(ctx["error"], Exception):
+            ctx = {**ctx, "error": str(ctx["error"])}
+        normalized_errors.append({**error, "ctx": ctx})
+
+    app_logger.warning(f"Validation error for {request.url.path}: {normalized_errors}")
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        content={"detail": normalized_errors},
+    )
 
 # CORS setup
 app.add_middleware(
