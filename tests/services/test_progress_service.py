@@ -100,7 +100,7 @@ class TestProgressService:
         # Assert
         assert result['completed'] == 1
         assert result['total'] == 3
-        assert result['percentage'] == 33.333333333333336  # 1/3 * 100
+        assert result['percentage'] == pytest.approx(33.333333333333336)  # 1/3 * 100
 
         mock_content_service.get_course_lesson_slugs.assert_called_once_with(course_slug)
 

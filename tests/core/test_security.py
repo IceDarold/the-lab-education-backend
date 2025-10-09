@@ -199,7 +199,7 @@ class TestGetCurrentUser:
     async def test_get_current_user_invalid(self, mock_settings):
         """Test getting current user with invalid token."""
         with patch("jwt.decode") as mock_decode:
-            mock_decode.side_effect = JWTError("Invalid token")
+            mock_decode.side_effect = PyJWTError("Invalid token")
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_current_user("invalid-token")

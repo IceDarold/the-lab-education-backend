@@ -8,6 +8,11 @@ from src.models.user_activity_log import UserActivityLog
 from src.services.content_scanner_service import ContentScannerService
 from src.core.errors import DatabaseError, ValidationError
 from src.core.logging import get_logger
+from src.core.utils import maybe_await
+
+# Ensure SQLAlchemy relationship dependencies are registered for mapped models
+from src.models import user as _user_model  # noqa: F401
+from src.models import enrollment as _enrollment_model  # noqa: F401
 
 logger = get_logger(__name__)
 
@@ -28,7 +33,7 @@ class ProgressService:
                 UserLessonProgress.lesson_slug == lesson_slug
             )
             result = await db.execute(stmt)
-            progress = result.scalar_one_or_none()
+            progress = await maybe_await(result.scalar_one_or_none())
 
             if progress is None:
                 # Create new progress record

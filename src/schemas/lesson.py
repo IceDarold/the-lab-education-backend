@@ -10,6 +10,11 @@ class LessonCell(BaseModel):
     content: str
     config: Dict[str, Any] = Field(default_factory=dict)
 
+    @property
+    def cell_type(self) -> str:
+        """Backward compatible accessor for the cell type."""
+        return self.type
+
 
 class Lesson(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)

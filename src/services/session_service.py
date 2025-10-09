@@ -12,6 +12,7 @@ from src.core.security import create_refresh_token
 from src.core.config import settings
 from src.core.errors import DatabaseError, ValidationError
 from src.core.logging import get_logger
+from src.core.utils import maybe_await
 
 logger = get_logger(__name__)
 
@@ -57,6 +58,8 @@ class SessionService:
             logger.info(f"Successfully created session for user: {user_id}")
             return session
 
+        except ValidationError:
+            raise
         except SQLAlchemyError as e:
             logger.error(f"Database error creating session for user {user_id}: {str(e)}")
             await db.rollback()
@@ -77,7 +80,7 @@ class SessionService:
                 UserSession.expires_at > datetime.utcnow()
             )
             result = await db.execute(query)
-            session = result.scalar_one_or_none()
+            session = await maybe_await(result.scalar_one_or_none())
             if session:
                 logger.debug(f"Found active session for user: {session.user_id}")
             else:

@@ -12,6 +12,16 @@ from src.schemas.user import CheckEmailRequest, ForgotPasswordRequest, ResetPass
 router = APIRouter()
 
 
+def get_supabase_client():
+    """Backward compatible wrapper so tests can patch the legacy helper."""
+    return get_resilient_supabase_client()
+
+
+def get_supabase_admin_client():
+    """Backward compatible wrapper so tests can patch the legacy helper."""
+    return get_resilient_supabase_admin_client()
+
+
 async def _finalize_request(result: Any) -> Any:
     if asyncio.iscoroutine(result):
         return await result
@@ -28,7 +38,7 @@ async def _finalize_request(result: Any) -> Any:
 
 @router.post("/register", response_model=None, status_code=status.HTTP_201_CREATED)
 async def register_user(user_in: UserCreate):
-    supabase = get_resilient_supabase_client()
+    supabase = get_supabase_client()
 
     try:
         response = await _finalize_request(
@@ -76,7 +86,7 @@ async def register_user(user_in: UserCreate):
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
-    supabase = get_resilient_supabase_client()
+    supabase = get_supabase_client()
 
     try:
         response = await _finalize_request(
@@ -112,7 +122,7 @@ async def get_me(current_user: User = Depends(get_current_user)) -> User:
 
 @router.post("/check-email")
 async def check_email(request: CheckEmailRequest):
-    supabase = get_resilient_supabase_admin_client()
+    supabase = get_supabase_admin_client()
 
     try:
         profile_response = await _finalize_request(
@@ -129,7 +139,7 @@ async def check_email(request: CheckEmailRequest):
 
 @router.post("/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest):
-    supabase = get_resilient_supabase_admin_client()
+    supabase = get_supabase_admin_client()
 
     # Check if email exists in profiles
     try:
@@ -151,7 +161,7 @@ async def forgot_password(request: ForgotPasswordRequest):
         ) from exc
 
     # Send reset email using regular client
-    supabase_auth = get_resilient_supabase_client()
+    supabase_auth = get_supabase_client()
     try:
         await _finalize_request(
             supabase_auth.auth.reset_password_for_email(request.email)
@@ -166,7 +176,7 @@ async def forgot_password(request: ForgotPasswordRequest):
 
 @router.post("/reset-password")
 async def reset_password(request: ResetPasswordRequest):
-    supabase = get_resilient_supabase_client()
+    supabase = get_supabase_client()
 
     # Verify the recovery token
     try:

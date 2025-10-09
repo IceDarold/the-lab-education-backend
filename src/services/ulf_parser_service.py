@@ -45,7 +45,7 @@ class ULFParserService:
                 'cells': cells
             }
 
-        except frontmatter.YAMLParseError as e:
+        except (ValueError, yaml.YAMLError) as e:
             raise ParsingError(f"Invalid frontmatter: {e}")
         except Exception as e:
             raise ParsingError(f"Parsing error: {e}")

@@ -15,6 +15,7 @@ os.environ.setdefault("SECRET_KEY", "test-secret")
 
 from src.main import app
 from src.schemas.user import User
+from src.core.security import get_current_user
 
 
 @pytest.fixture
@@ -29,6 +30,13 @@ def mock_current_user():
 
 
 @pytest.fixture
+def override_current_user(mock_current_user):
+    app.dependency_overrides[get_current_user] = lambda: mock_current_user
+    yield
+    app.dependency_overrides.pop(get_current_user, None)
+
+
+@pytest.fixture
 def mock_supabase_client():
     """Mock Supabase client."""
     client = MagicMock()
@@ -38,7 +46,7 @@ def mock_supabase_client():
 
 
 @pytest.mark.asyncio
-async def test_check_quiz_answer_correct(mock_current_user, mock_supabase_client, monkeypatch):
+async def test_check_quiz_answer_correct(mock_current_user, mock_supabase_client, monkeypatch, override_current_user):
     """Test successful quiz answer check with correct answer."""
     client_mock, answers_table = mock_supabase_client
     correct_answer_id = str(uuid4())
@@ -56,7 +64,7 @@ async def test_check_quiz_answer_correct(mock_current_user, mock_supabase_client
     response_mock.data = {"correct_answer_id": correct_answer_id}
     single_mock.execute = AsyncMock(return_value=response_mock)
 
-    monkeypatch.setattr("src.db.session.get_supabase_client", lambda: client_mock)
+    monkeypatch.setattr("src.api.v1.quizzes.get_supabase_client", lambda: client_mock)
     monkeypatch.setattr("src.core.security.get_current_user", lambda: mock_current_user)
 
     transport = ASGITransport(app=app)
@@ -74,7 +82,7 @@ async def test_check_quiz_answer_correct(mock_current_user, mock_supabase_client
 
 
 @pytest.mark.asyncio
-async def test_check_quiz_answer_incorrect(mock_current_user, mock_supabase_client, monkeypatch):
+async def test_check_quiz_answer_incorrect(mock_current_user, mock_supabase_client, monkeypatch, override_current_user):
     """Test quiz answer check with incorrect answer."""
     client_mock, answers_table = mock_supabase_client
     correct_answer_id = str(uuid4())
@@ -92,7 +100,7 @@ async def test_check_quiz_answer_incorrect(mock_current_user, mock_supabase_clie
     response_mock.data = {"correct_answer_id": correct_answer_id}
     single_mock.execute = AsyncMock(return_value=response_mock)
 
-    monkeypatch.setattr("src.db.session.get_supabase_client", lambda: client_mock)
+    monkeypatch.setattr("src.api.v1.quizzes.get_supabase_client", lambda: client_mock)
     monkeypatch.setattr("src.core.security.get_current_user", lambda: mock_current_user)
 
     transport = ASGITransport(app=app)
@@ -110,7 +118,7 @@ async def test_check_quiz_answer_incorrect(mock_current_user, mock_supabase_clie
 
 
 @pytest.mark.asyncio
-async def test_check_quiz_answer_question_not_found(mock_current_user, mock_supabase_client, monkeypatch):
+async def test_check_quiz_answer_question_not_found(mock_current_user, mock_supabase_client, monkeypatch, override_current_user):
     """Test quiz answer check when question is not found."""
     client_mock, answers_table = mock_supabase_client
     question_id = str(uuid4())
@@ -123,7 +131,7 @@ async def test_check_quiz_answer_question_not_found(mock_current_user, mock_supa
     single_mock.single = MagicMock(return_value=single_mock)
     single_mock.execute = AsyncMock(side_effect=Exception("Query failed"))
 
-    monkeypatch.setattr("src.db.session.get_supabase_client", lambda: client_mock)
+    monkeypatch.setattr("src.api.v1.quizzes.get_supabase_client", lambda: client_mock)
     monkeypatch.setattr("src.core.security.get_current_user", lambda: mock_current_user)
 
     transport = ASGITransport(app=app)
@@ -140,7 +148,7 @@ async def test_check_quiz_answer_question_not_found(mock_current_user, mock_supa
 
 
 @pytest.mark.asyncio
-async def test_check_quiz_answer_database_exception(mock_current_user, mock_supabase_client, monkeypatch):
+async def test_check_quiz_answer_database_exception(mock_current_user, mock_supabase_client, monkeypatch, override_current_user):
     """Test quiz answer check with database query exception."""
     client_mock, answers_table = mock_supabase_client
     question_id = str(uuid4())
@@ -153,7 +161,7 @@ async def test_check_quiz_answer_database_exception(mock_current_user, mock_supa
     single_mock.single = MagicMock(return_value=single_mock)
     single_mock.execute = AsyncMock(side_effect=Exception("Database error"))
 
-    monkeypatch.setattr("src.db.session.get_supabase_client", lambda: client_mock)
+    monkeypatch.setattr("src.api.v1.quizzes.get_supabase_client", lambda: client_mock)
     monkeypatch.setattr("src.core.security.get_current_user", lambda: mock_current_user)
 
     transport = ASGITransport(app=app)
@@ -170,7 +178,7 @@ async def test_check_quiz_answer_database_exception(mock_current_user, mock_supa
 
 
 @pytest.mark.asyncio
-async def test_check_quiz_answer_missing_correct_answer_id(mock_current_user, mock_supabase_client, monkeypatch):
+async def test_check_quiz_answer_missing_correct_answer_id(mock_current_user, mock_supabase_client, monkeypatch, override_current_user):
     """Test quiz answer check when correct_answer_id is missing."""
     client_mock, answers_table = mock_supabase_client
     question_id = str(uuid4())
@@ -187,7 +195,7 @@ async def test_check_quiz_answer_missing_correct_answer_id(mock_current_user, mo
     response_mock.data = {}  # No correct_answer_id
     single_mock.execute = AsyncMock(return_value=response_mock)
 
-    monkeypatch.setattr("src.db.session.get_supabase_client", lambda: client_mock)
+    monkeypatch.setattr("src.api.v1.quizzes.get_supabase_client", lambda: client_mock)
     monkeypatch.setattr("src.core.security.get_current_user", lambda: mock_current_user)
 
     transport = ASGITransport(app=app)

@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timedelta
 
 import jwt
+from jwt import ExpiredSignatureError, PyJWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
@@ -41,12 +42,24 @@ def verify_refresh_token(token: str):
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         token_type = payload.get("type")
         if token_type != "refresh":
-            raise AuthenticationError("Invalid token type")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         return payload
-    except jwt.ExpiredSignatureError:
-        raise AuthenticationError("Refresh token expired")
-    except jwt.JWTError:
-        raise AuthenticationError("Invalid refresh token")
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -57,15 +70,31 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         token_type = payload.get("type")
         if token_type != "access":
-            raise AuthenticationError("Invalid token type")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         user_id = payload.get("sub")
         email = payload.get("email")
         if not user_id or not email:
-            raise AuthenticationError("Invalid token payload")
-    except jwt.ExpiredSignatureError:
-        raise AuthenticationError("Token expired")
-    except jwt.JWTError:
-        raise AuthenticationError("Invalid authentication credentials")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     # For now, return basic user info from token
     # TODO: Fetch full profile from database
@@ -84,6 +113,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
 
 async def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "admin":
-        raise AuthorizationError("Admin access required")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
     return current_user
-

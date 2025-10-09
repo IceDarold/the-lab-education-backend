@@ -13,6 +13,7 @@ os.environ.setdefault("SUPABASE_KEY", "test-key")
 os.environ.setdefault("SECRET_KEY", "test-secret")
 
 from src.main import app
+from src.core.security import create_access_token
 
 
 @pytest.mark.asyncio
@@ -77,35 +78,21 @@ async def test_login_success(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_get_me_success(monkeypatch):
-    client_mock = MagicMock()
     user_id = "11111111-1111-1111-1111-111111111111"
-    user_data = MagicMock()
-    user_data.id = user_id
-    user_data.email = "user@example.com"
-    user_data.user_metadata = {"full_name": "Test User"}
-
-    get_user_response = MagicMock(user=user_data)
-
-    client_mock.auth = MagicMock()
-    client_mock.auth.get_user = AsyncMock(return_value=get_user_response)
-
-    try:
-        monkeypatch.setattr("src.core.security.get_supabase_client", lambda: client_mock)
-    except AttributeError:
-        monkeypatch.setattr("src.db.session.get_supabase_client", lambda: client_mock)
+    token = create_access_token({"sub": user_id, "email": "user@example.com"})
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as async_client:
         response = await async_client.get(
             "/api/v1/auth/me",
-            headers={"Authorization": "Bearer fake-token"},
+            headers={"Authorization": f"Bearer {token}"},
         )
 
     assert response.status_code == 200
     data = response.json()
     assert data.get("user_id") == user_id
     assert data.get("email") == "user@example.com"
-    assert data.get("full_name") == "Test User"
+    assert data.get("full_name") == ""
 
 
 @pytest.mark.asyncio

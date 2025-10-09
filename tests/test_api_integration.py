@@ -4,6 +4,13 @@ from fastapi import FastAPI
 from unittest.mock import AsyncMock, MagicMock
 from src.main import app  # Import the real app
 from src.schemas.content_node import ContentNode
+from src.dependencies import (
+    get_fs_service,
+    get_content_scanner,
+    get_ulf_parser,
+    get_current_user,
+)
+from src.core.security import get_current_admin
 
 
 @pytest.fixture
@@ -40,7 +47,10 @@ def mock_ulf_parser():
 @pytest.fixture
 def mock_get_current_admin():
     """Mock admin authentication."""
-    return MagicMock()
+    admin = MagicMock()
+    admin.role = "admin"
+    admin.id = 1
+    return admin
 
 
 @pytest.fixture
@@ -55,12 +65,11 @@ def integration_app(mock_fs_service, mock_content_scanner, mock_ulf_parser, mock
     test_app.include_router(lessons_router, prefix="/api/lessons")
 
     # Override dependencies
-    test_app.dependency_overrides = {
-        "src.dependencies.get_fs_service": lambda: mock_fs_service,
-        "src.dependencies.get_content_scanner": lambda: mock_content_scanner,
-        "src.dependencies.get_ulf_parser": lambda: mock_ulf_parser,
-        "src.core.security.get_current_admin": lambda: mock_get_current_admin,
-    }
+    test_app.dependency_overrides[get_fs_service] = lambda: mock_fs_service
+    test_app.dependency_overrides[get_content_scanner] = lambda: mock_content_scanner
+    test_app.dependency_overrides[get_ulf_parser] = lambda: mock_ulf_parser
+    test_app.dependency_overrides[get_current_admin] = lambda: mock_get_current_admin
+    test_app.dependency_overrides[get_current_user] = lambda: mock_get_current_admin
     return test_app
 
 

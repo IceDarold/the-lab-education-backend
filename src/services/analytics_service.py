@@ -5,6 +5,12 @@ from collections import defaultdict
 from uuid import UUID
 from src.models.user_activity_log import UserActivityLog
 from src.schemas import TrackEventRequest
+from src.core.utils import maybe_await
+
+# Ensure SQLAlchemy relationship dependencies are registered when instantiating models
+from src.models import user as _user_model  # noqa: F401
+from src.models import enrollment as _enrollment_model  # noqa: F401
+from src.models import user_lesson_progress as _progress_model  # noqa: F401
 
 
 class AnalyticsService:
@@ -32,7 +38,7 @@ class AnalyticsService:
 
         # Execute the query
         result = await db.execute(stmt)
-        rows = result.all()
+        rows = await maybe_await(result.all())
 
         # Process results into a dictionary grouped by date
         activity_data = defaultdict(dict)

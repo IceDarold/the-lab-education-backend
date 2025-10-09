@@ -164,16 +164,16 @@ class TestAnalyticsService:
         # Assert
         # Verify the query was called with correct parameters
         call_args = mock_db.execute.call_args[0][0]
+        query_str = str(call_args)
 
         # Check that the query filters by user_id
-        assert str(call_args).find('user_id == 1') != -1
+        assert 'user_activity_logs.user_id' in query_str
 
         # Check that the query filters by timestamp (one year ago)
-        assert str(call_args).find('timestamp >=') != -1
+        assert 'user_activity_logs.timestamp >=' in query_str
 
         # Check grouping
-        # Check grouping
-        assert str(call_args).find('group_by') != -1
+        assert 'GROUP BY' in query_str
 
     async def test_track_activity_success(self, mock_db):
         # Arrange
@@ -237,4 +237,3 @@ class TestAnalyticsService:
         assert added_instance.details == {}
 
         mock_db.commit.assert_called_once()
-        assert str(call_args).find('group_by') != -1

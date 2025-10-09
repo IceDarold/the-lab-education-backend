@@ -1,6 +1,7 @@
+import asyncio
 import yaml
 from typing import Optional
-from cachetools import cached, TTLCache
+from cachetools import TTLCache
 
 from src.schemas.content_node import ContentNode
 from src.services.file_system_service import FileSystemService
@@ -9,18 +10,27 @@ from src.services.file_system_service import FileSystemService
 class ContentScannerService:
     def __init__(self, fs_service: FileSystemService):
         self.fs_service = fs_service
+        self._cache = TTLCache(maxsize=1, ttl=3600)
+        self._cache_lock = asyncio.Lock()
 
-    @cached(cache=TTLCache(maxsize=1, ttl=3600))
     async def build_content_tree(self) -> list[ContentNode]:
-        # Scan the root directory (assuming 'courses' is the root for content)
-        items = await self.fs_service.scan_directory('courses')
-        root_nodes = []
-        for item in items:
-            if item.type == 'directory':
-                node = await self._build_node(item.path)
-                if node:
-                    root_nodes.append(node)
-        return root_nodes
+        """Scan content directory and build a cached hierarchical tree."""
+        cache_key = "content_tree"
+        async with self._cache_lock:
+            cached_tree = self._cache.get(cache_key)
+            if cached_tree is not None:
+                return cached_tree
+
+            items = await self.fs_service.scan_directory('courses')
+            root_nodes = []
+            for item in items:
+                if item.type == 'directory':
+                    node = await self._build_node(item.path)
+                    if node:
+                        root_nodes.append(node)
+
+            self._cache[cache_key] = root_nodes
+            return root_nodes
 
     async def _build_node(self, path: str) -> Optional[ContentNode]:
         items = await self.fs_service.scan_directory(path)
@@ -69,8 +79,29 @@ class ContentScannerService:
                 children.append(lesson_node)
 
         node.children = children
-        node.children = children
         return node
 
+    async def get_course_lesson_slugs(self, course_slug: str) -> list[str]:
+        """Return all lesson slugs for a given course, traversing nested modules."""
+        tree = await self.build_content_tree()
+        normalized_slug = course_slug.lower()
+
+        def gather_lessons(node: ContentNode) -> list[str]:
+            collected: list[str] = []
+            for child in node.children or []:
+                if child.type == 'lesson':
+                    collected.append(child.name)
+                else:
+                    collected.extend(gather_lessons(child))
+            return collected
+
+        for course_node in tree:
+            if course_node.type != 'course':
+                continue
+            path_slug = course_node.path.strip("/").split("/")[-1].lower()
+            if path_slug == normalized_slug or course_node.name.lower() == normalized_slug:
+                return gather_lessons(course_node)
+        return []
+
     def clear_cache(self):
-        self.build_content_tree.cache_clear()
+        self._cache.clear()

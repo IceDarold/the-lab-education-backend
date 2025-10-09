@@ -170,9 +170,9 @@ def _parse_cells(body: str) -> List[LessonCell]:
 
         cells.append(
             LessonCell(
-                cell_type=cell_type,
+                type=cell_type,
                 content=cell_content,
-                metadata=meta,
+                config=meta,
             )
         )
 
@@ -186,4 +186,3 @@ def _coerce_optional_uuid(value: Any) -> Optional[UUID]:
         return UUID(str(value))
     except (ValueError, TypeError) as exc:  # pragma: no cover - defensive
         raise ULFParseError("lesson_id must be a valid UUID") from exc
-

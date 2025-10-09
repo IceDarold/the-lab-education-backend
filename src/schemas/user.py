@@ -1,5 +1,6 @@
 from uuid import UUID
 from typing import Optional, List
+from datetime import datetime
 from email_validator import validate_email, EmailNotValidError
 
 from pydantic import BaseModel, Field, field_validator
@@ -75,6 +76,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(None, min_length=1, max_length=100)
     email: Optional[str] = Field(None, max_length=254)
     role: Optional[str] = None
+    status: Optional[str] = None
 
     @field_validator('email')
     @classmethod
@@ -91,12 +93,11 @@ class UserUpdate(BaseModel):
 
 class UserResponse(BaseModel):
     id: int
-    user_id: UUID
     full_name: str = Field(..., min_length=1, max_length=100)
     email: str = Field(..., max_length=254)
     role: str = "student"
-    created_at: str
-    updated_at: str
+    status: str = Field(..., min_length=1, max_length=50)
+    registration_date: datetime
 
     @field_validator('email')
     @classmethod
