@@ -46,7 +46,7 @@ jobs:
 
     - name: Run tests
       run: |
-        poetry run pytest --cov=src --cov-report=xml
+        PYTHONPATH=src poetry run pytest --cov=src --cov-report=xml
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
 
