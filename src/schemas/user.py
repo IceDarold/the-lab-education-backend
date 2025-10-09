@@ -1,6 +1,6 @@
 from uuid import UUID
 from typing import Optional, List
-import re
+from email_validator import validate_email, EmailNotValidError
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -13,10 +13,12 @@ class UserCreate(BaseModel):
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
-        # Basic email validation regex
-        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', v):
-            raise ValueError('Invalid email format')
-        return v
+        try:
+            # Use email-validator library for robust validation
+            valid = validate_email(v)
+            return valid.email  # Return normalized email
+        except EmailNotValidError as e:
+            raise ValueError(f'Invalid email format: {str(e)}')
 
 
 class User(BaseModel):
@@ -28,10 +30,12 @@ class User(BaseModel):
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
-        # Basic email validation regex
-        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', v):
-            raise ValueError('Invalid email format')
-        return v
+        try:
+            # Use email-validator library for robust validation
+            valid = validate_email(v)
+            return valid.email  # Return normalized email
+        except EmailNotValidError as e:
+            raise ValueError(f'Invalid email format: {str(e)}')
 
 
 class CheckEmailRequest(BaseModel):
@@ -40,10 +44,12 @@ class CheckEmailRequest(BaseModel):
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
-        # Basic email validation regex
-        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', v):
-            raise ValueError('Invalid email format')
-        return v
+        try:
+            # Use email-validator library for robust validation
+            valid = validate_email(v)
+            return valid.email  # Return normalized email
+        except EmailNotValidError as e:
+            raise ValueError(f'Invalid email format: {str(e)}')
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -52,10 +58,12 @@ class ForgotPasswordRequest(BaseModel):
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
-        # Basic email validation regex
-        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', v):
-            raise ValueError('Invalid email format')
-        return v
+        try:
+            # Use email-validator library for robust validation
+            valid = validate_email(v)
+            return valid.email  # Return normalized email
+        except EmailNotValidError as e:
+            raise ValueError(f'Invalid email format: {str(e)}')
 
 
 class ResetPasswordRequest(BaseModel):
@@ -72,9 +80,12 @@ class UserUpdate(BaseModel):
     @classmethod
     def validate_email(cls, v):
         if v is not None:
-            # Basic email validation regex
-            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', v):
-                raise ValueError('Invalid email format')
+            try:
+                # Use email-validator library for robust validation
+                valid = validate_email(v)
+                return valid.email  # Return normalized email
+            except EmailNotValidError as e:
+                raise ValueError(f'Invalid email format: {str(e)}')
         return v
 
 
@@ -90,10 +101,12 @@ class UserResponse(BaseModel):
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
-        # Basic email validation regex
-        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', v):
-            raise ValueError('Invalid email format')
-        return v
+        try:
+            # Use email-validator library for robust validation
+            valid = validate_email(v)
+            return valid.email  # Return normalized email
+        except EmailNotValidError as e:
+            raise ValueError(f'Invalid email format: {str(e)}')
 
 
 class UsersListResponse(BaseModel):

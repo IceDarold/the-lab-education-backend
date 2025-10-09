@@ -7,7 +7,7 @@ from src.services.progress_service import ProgressService
 from src.services.analytics_service import AnalyticsService
 from src.services.content_scanner_service import ContentScannerService
 from src.schemas import UsersListResponse, UserResponse, UserFilter
-from src.dependencies import get_db, get_current_admin
+from src.dependencies import get_db, get_current_admin, get_content_scanner
 from src.models.user import User
 from src.models.enrollment import Enrollment
 

@@ -39,3 +39,23 @@ class DatabaseError(Exception):
 class ExternalServiceError(Exception):
     """Raised when external service calls fail."""
     pass
+
+
+class SupabaseClientError(Exception):
+    """Base exception for Supabase client errors."""
+    pass
+
+
+class SupabaseTimeoutError(SupabaseClientError):
+    """Raised when Supabase operations timeout."""
+    pass
+
+
+class SupabaseCircuitBreakerError(SupabaseClientError):
+    """Raised when circuit breaker is open."""
+    pass
+
+
+class SupabaseNetworkError(SupabaseClientError):
+    """Raised when Supabase network operations fail."""
+    pass

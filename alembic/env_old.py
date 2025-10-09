@@ -19,7 +19,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 from src.db.base import Base
 # Import all models to register them
-from src.models import user, enrollment, user_activity_log, user_lesson_progress, user_session
+from src.models import user, course, enrollment, lesson, user_activity_log, user_lesson_progress
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

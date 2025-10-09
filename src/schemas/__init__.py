@@ -2,6 +2,7 @@ from .content_node import ContentNode
 from .lesson import Lesson, LessonCell, LessonCompleteResponse, LessonCompleteRequest
 from .user import UserCreate, User, UserUpdate, UserResponse, UsersListResponse, UserFilter
 from .analytics import TrackEventRequest, ActivityDetailsResponse, DailyActivity
+from .token import Token, RefreshTokenRequest, RefreshTokenResponse
 
 __all__ = [
     "ContentNode",
@@ -18,6 +19,9 @@ __all__ = [
     "TrackEventRequest",
     "ActivityDetailsResponse",
     "DailyActivity",
+    "Token",
+    "RefreshTokenRequest",
+    "RefreshTokenResponse",
     "course",
     "lesson",
     "quiz",

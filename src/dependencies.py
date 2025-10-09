@@ -3,6 +3,7 @@ from fastapi import Depends, HTTPException, status
 from src.services.file_system_service import FileSystemService
 from src.services.content_scanner_service import ContentScannerService
 from src.services.ulf_parser_service import ULFParserService
+from src.core.security import get_current_user, get_current_admin
 
 
 def get_fs_service() -> FileSystemService:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 from uuid import UUID
 import os
 
@@ -179,7 +179,7 @@ def _parse_cells(body: str) -> List[LessonCell]:
     return cells
 
 
-def _coerce_optional_uuid(value: Any) -> UUID | None:
+def _coerce_optional_uuid(value: Any) -> Optional[UUID]:
     if value in (None, ""):
         return None
     try:
