@@ -43,7 +43,7 @@ def setup_logging():
         format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | {name}:{function}:{line} | {message}",
         level="INFO",
         serialize=False,  # Set to True for JSON output in production
-        enqueue=True,  # Async logging
+        enqueue=False,  # Disable async logging for serverless compatibility
         backtrace=True,
         diagnose=True
     )
@@ -56,7 +56,7 @@ def setup_logging():
         rotation="10 MB",
         retention="1 week",
         encoding="utf-8",
-        enqueue=True,
+        enqueue=False,  # Disable async logging for serverless compatibility
         backtrace=True,
         diagnose=True
     )
@@ -69,7 +69,7 @@ def setup_logging():
         rotation="10 MB",
         retention="1 week",
         encoding="utf-8",
-        enqueue=True,
+        enqueue=False,  # Disable async logging for serverless compatibility
         filter=lambda record: record["extra"].get("access", False)
     )
 
