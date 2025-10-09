@@ -13,9 +13,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    env:
-      PYTHONPATH: src
-
     services:
       postgres:
         image: postgres:15
@@ -52,6 +49,7 @@ jobs:
         poetry run pytest --cov=src --cov-report=xml
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        PYTHONPATH: src
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
