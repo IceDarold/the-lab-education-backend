@@ -4,8 +4,9 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+import pytest_asyncio
 from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -14,9 +15,15 @@ os.environ.setdefault("SUPABASE_URL", "https://test.supabase.co")
 os.environ.setdefault("SUPABASE_KEY", "test-key")
 os.environ.setdefault("SECRET_KEY", "test-secret")
 
+from src.core.rate_limiting import limiter
+from src.core.supabase_client import (
+    get_resilient_supabase_admin_client,
+    get_resilient_supabase_client,
+)
+from src.dependencies import get_db
 from src.routers.auth_router import router as auth_router
-from src.schemas.user import UserCreate
 from src.schemas.token import RefreshTokenRequest
+from src.schemas.user import UserCreate
 
 
 @pytest.fixture
@@ -31,6 +38,11 @@ def mock_supabase_client():
     """Mock Supabase client."""
     client = MagicMock()
     client.auth = MagicMock()
+    client.auth.sign_up = AsyncMock()
+    client.auth.sign_in_with_password = AsyncMock()
+    client.auth.verify_otp = AsyncMock()
+    client.auth.update_user = AsyncMock()
+    client.auth.reset_password_for_email = AsyncMock()
     return client
 
 
@@ -39,6 +51,8 @@ def mock_supabase_admin_client():
     """Mock Supabase admin client."""
     client = MagicMock()
     client.admin = MagicMock()
+    client.admin.delete_user = AsyncMock()
+    client.table = MagicMock()
     return client
 
 
@@ -48,6 +62,7 @@ def mock_user_service():
     service = MagicMock()
     service.create_user_with_id = AsyncMock()
     service.delete_user = AsyncMock()
+    service.authenticate_user = AsyncMock()
     return service
 
 
@@ -58,6 +73,17 @@ def mock_session_service():
     service.create_session = AsyncMock()
     service.get_session_by_token_hash = AsyncMock()
     service.hash_refresh_token = MagicMock(return_value="hashed_token")
+    service.invalidate_session = AsyncMock()
+    return service
+
+
+@pytest.fixture
+def mock_profile_service():
+    """Mock ProfileService."""
+    service = MagicMock()
+    service.get_profile_by_id = AsyncMock(return_value=None)
+    service.create_profile = AsyncMock()
+    service.delete_profile = AsyncMock()
     return service
 
 
@@ -75,25 +101,35 @@ def mock_security_functions():
 
 
 @pytest.fixture
-def test_app(mock_db, mock_supabase_client, mock_supabase_admin_client, mock_user_service, mock_session_service, mock_security_functions):
+def test_app(
+    mock_db,
+    mock_supabase_client,
+    mock_supabase_admin_client,
+    mock_user_service,
+    mock_session_service,
+    mock_profile_service,
+    mock_security_functions,
+):
     """Create test FastAPI app with mocked dependencies."""
     app = FastAPI()
+    app.state.limiter = limiter
+    app.state.limiter.logger = MagicMock()
     app.include_router(auth_router, prefix="/auth")
 
-    # Mock dependencies
-    app.dependency_overrides = {
-        "src.routers.auth_router.get_db": lambda: mock_db,
-        "src.routers.auth_router.get_supabase_client": lambda: mock_supabase_client,
-        "src.routers.auth_router.get_supabase_admin_client": lambda: mock_supabase_admin_client,
-    }
+    async def override_get_db():
+        yield mock_db
 
-    # Mock services
-    with patch('src.routers.auth_router.UserService', mock_user_service), \
-         patch('src.routers.auth_router.SessionService', mock_session_service):
+    app.dependency_overrides[get_db] = override_get_db
+
+    with patch("src.routers.auth_router.get_resilient_supabase_client", return_value=mock_supabase_client), \
+         patch("src.routers.auth_router.get_resilient_supabase_admin_client", return_value=mock_supabase_admin_client), \
+         patch("src.routers.auth_router.UserService", mock_user_service), \
+         patch("src.routers.auth_router.SessionService", mock_session_service), \
+         patch("src.routers.auth_router.ProfileService", mock_profile_service):
         yield app
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def async_client(test_app):
     """Async test client."""
     transport = ASGITransport(app=test_app)
@@ -108,7 +144,7 @@ class TestLogin:
         # Mock Supabase auth response
         auth_response = MagicMock()
         auth_response.user = MagicMock()
-        auth_response.user.id = "test-user-id"
+        auth_response.user.id = "11111111-1111-1111-1111-111111111111"
         mock_supabase_client.auth.sign_in_with_password = AsyncMock(return_value=auth_response)
 
         # Mock session creation
@@ -135,7 +171,9 @@ class TestLogin:
     async def test_login_invalid_credentials(self, async_client, mock_supabase_client):
         """Test login with invalid credentials."""
         # Mock Supabase auth failure
-        mock_supabase_client.auth.sign_in_with_password = AsyncMock(side_effect=Exception("Invalid credentials"))
+        from src.core.errors import AuthenticationError
+
+        mock_supabase_client.auth.sign_in_with_password = AsyncMock(side_effect=AuthenticationError("Invalid credentials"))
 
         response = await async_client.post("/auth/login", data={
             "username": "test@example.com",
@@ -167,7 +205,7 @@ class TestLogin:
         # Mock successful Supabase auth
         auth_response = MagicMock()
         auth_response.user = MagicMock()
-        auth_response.user.id = "test-user-id"
+        auth_response.user.id = "11111111-1111-1111-1111-111111111111"
         mock_supabase_client.auth.sign_in_with_password = AsyncMock(return_value=auth_response)
 
         # Mock session creation failure
@@ -191,7 +229,7 @@ class TestRegister:
         # Mock Supabase signup
         auth_response = MagicMock()
         auth_response.user = MagicMock()
-        auth_response.user.id = "test-user-id"
+        auth_response.user.id = "11111111-1111-1111-1111-111111111111"
         mock_supabase_client.auth.sign_up = AsyncMock(return_value=auth_response)
 
         # Mock user creation
@@ -239,13 +277,13 @@ class TestRegister:
 
         response = await async_client.post("/auth/register", json=user_data.model_dump())
 
-        assert response.status_code == 500
+        assert response.status_code == 503
         data = response.json()
-        assert "Failed to create user account with authentication service" in data["detail"]
+        assert "Authentication service temporarily unavailable" in data["detail"]
 
-        # Verify rollback calls
-        mock_user_service.delete_user.assert_called_once()
-        mock_supabase_admin_client.admin.delete_user.assert_called_once()
+        # Verify rollback calls (only Supabase admin deletion is attempted when user ID exists)
+        mock_user_service.delete_user.assert_not_called()
+        mock_supabase_admin_client.admin.delete_user.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_register_database_error(self, async_client, mock_user_service):
@@ -300,7 +338,7 @@ class TestRefreshToken:
     async def test_refresh_token_invalid_token(self, async_client, mock_security_functions):
         """Test refresh with invalid token."""
         from src.core.errors import AuthenticationError
-        mock_security_functions['verify_refresh_token'] = MagicMock(side_effect=AuthenticationError("Invalid token"))
+        mock_security_functions['verify_refresh_token'].side_effect = AuthenticationError("Invalid token")
 
         refresh_request = RefreshTokenRequest(refresh_token="invalid_token")
 

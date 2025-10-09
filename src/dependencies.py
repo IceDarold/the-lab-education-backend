@@ -55,28 +55,26 @@ def validate_safe_path(path: str) -> str:
     Raises:
         HTTPException: If path contains traversal attempts
     """
-    from pathlib import Path
+    from pathlib import PurePosixPath
 
-    # Check for obvious traversal patterns
-    if ".." in path or path.startswith("/") or path.startswith("\\"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid path: directory traversal not allowed"
-        )
-
-    # Normalize path and check if it resolves to something outside allowed directory
-    try:
-        normalized = Path(path).resolve()
-        # Basic check - ensure no absolute paths or traversal
-        if str(normalized) != path.replace("\\", "/").replace("//", "/"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid path: path traversal detected"
-            )
-    except Exception:
+    if not path:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid path format"
+        )
+
+    # Reject absolute paths and drive-relative paths
+    if path.startswith(("/", "\\")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+
+    candidate = PurePosixPath(path.replace("\\", "/"))
+    if candidate.is_absolute() or ".." in candidate.parts:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
         )
 
     return path

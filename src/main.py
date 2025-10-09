@@ -19,6 +19,10 @@ from src.dependencies import get_fs_service, get_content_scanner, get_ulf_parser
 
 app = FastAPI(title="ML-Practicum API")
 
+# Expose limiter on application state so SlowAPI middleware can access it.
+app.state.limiter = limiter
+app.state.limiter.logger = app_logger
+
 # Setup logging
 app_logger.info("Starting ML-Practicum API")
 

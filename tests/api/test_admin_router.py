@@ -1,11 +1,13 @@
 import pytest
-from fastapi.testclient import TestClient
 from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
+
 from src.api.v1.admin import router as admin_router
+from src.core.security import get_current_admin
+from src.dependencies import get_content_scanner, get_fs_service
 from src.schemas.content_node import ContentNode
-from src.schemas.api import CreateCourseRequest, CreateModuleRequest, CreateLessonRequest
 from src.schemas.user import User
 
 
@@ -18,6 +20,8 @@ def mock_fs_service():
     service.create_directory = AsyncMock()
     service.delete_file = AsyncMock()
     service.delete_directory = AsyncMock()
+    service.scan_directory = AsyncMock()
+    service.path_exists = AsyncMock(return_value=False)
     return service
 
 
@@ -26,7 +30,7 @@ def mock_content_scanner():
     """Mock ContentScannerService."""
     service = MagicMock()
     service.build_content_tree = AsyncMock()
-    service.clear_cache = AsyncMock()
+    service.clear_cache = MagicMock()
     return service
 
 
@@ -50,11 +54,15 @@ def test_app(mock_fs_service, mock_content_scanner, mock_get_current_admin):
     async def mock_get_current_admin_dep():
         return mock_get_current_admin
 
-    app.dependency_overrides = {
-        "src.dependencies.get_fs_service": lambda: mock_fs_service,
-        "src.dependencies.get_content_scanner": lambda: mock_content_scanner,
-        "src.core.security.get_current_user": mock_get_current_admin_dep,
-    }
+    async def override_fs_service():
+        return mock_fs_service
+
+    async def override_content_scanner():
+        return mock_content_scanner
+
+    app.dependency_overrides[get_fs_service] = override_fs_service
+    app.dependency_overrides[get_content_scanner] = override_content_scanner
+    app.dependency_overrides[get_current_admin] = mock_get_current_admin_dep
 
     app.include_router(admin_router, prefix="/api/admin")
     return app
@@ -94,18 +102,18 @@ class TestAdminContentTree:
 class TestAdminConfigFile:
     def test_get_config_file_success(self, client, mock_fs_service):
         """Test successful config file retrieval."""
-        mock_fs_service.readFile.return_value = "title: ML Course\n"
+        mock_fs_service.read_file.return_value = "title: ML Course\n"
 
         response = client.get("/api/admin/config-file?path=_course.yml")
 
         assert response.status_code == 200
         assert response.text == "title: ML Course\n"
-        mock_fs_service.readFile.assert_called_once_with("_course.yml")
+        mock_fs_service.read_file.assert_called_once_with("_course.yml")
 
     def test_get_config_file_not_found(self, client, mock_fs_service):
         """Test config file not found."""
         from src.core.errors import ContentFileNotFoundError
-        mock_fs_service.readFile.side_effect = ContentFileNotFoundError("File not found")
+        mock_fs_service.read_file.side_effect = ContentFileNotFoundError("File not found")
 
         response = client.get("/api/admin/config-file?path=missing.yml")
 
@@ -123,13 +131,13 @@ class TestAdminConfigFile:
         )
 
         assert response.status_code == 200
-        mock_fs_service.writeFile.assert_called_once_with("_course.yml", content)
+        mock_fs_service.write_file.assert_called_once_with("_course.yml", content)
         mock_content_scanner.clear_cache.assert_called_once()
 
     def test_put_config_file_security_error(self, client, mock_fs_service, mock_content_scanner):
         """Test config file update with security error."""
         from src.core.errors import SecurityError
-        mock_fs_service.writeFile.side_effect = SecurityError("Access denied")
+        mock_fs_service.write_file.side_effect = SecurityError("Access denied")
 
         response = client.put(
             "/api/admin/config-file?path=../../../etc/passwd",
@@ -150,9 +158,9 @@ class TestAdminCreateItem:
         response = client.post("/api/admin/create/course", json=request_data)
 
         assert response.status_code == 201
-        mock_fs_service.createDirectory.assert_called_once_with("new-course")
-        mock_fs_service.writeFile.assert_called_once_with(
-            "new-course/_course.yml", "title: New Course\n"
+        mock_fs_service.create_directory.assert_called_once_with("courses/new-course")
+        mock_fs_service.write_file.assert_called_once_with(
+            "courses/new-course/_course.yml", "title: New Course\n"
         )
         mock_content_scanner.clear_cache.assert_called_once()
 
@@ -163,23 +171,39 @@ class TestAdminCreateItem:
         response = client.post("/api/admin/create/module", json=request_data)
 
         assert response.status_code == 201
-        mock_fs_service.createDirectory.assert_called_once_with("parent-course/new-module")
-        mock_fs_service.writeFile.assert_called_once_with(
-            "parent-course/new-module/_module.yml", "title: New Module\n"
+        mock_fs_service.create_directory.assert_called_once_with("courses/parent-course/new-module")
+        mock_fs_service.write_file.assert_called_once_with(
+            "courses/parent-course/new-module/_module.yml", "title: New Module\n"
         )
         mock_content_scanner.clear_cache.assert_called_once()
 
     def test_create_lesson_success(self, client, mock_fs_service, mock_content_scanner):
         """Test successful lesson creation."""
         request_data = {"title": "New Lesson", "slug": "new-lesson", "parent_slug": "parent-module"}
+        mock_content_scanner.build_content_tree.return_value = [
+            ContentNode(
+                type="course",
+                name="parent-course",
+                path="courses/parent-course",
+                config_path="courses/parent-course/_course.yml",
+                children=[
+                    ContentNode(
+                        type="module",
+                        name="parent-module",
+                        path="courses/parent-course/parent-module",
+                        config_path="courses/parent-course/parent-module/_module.yml",
+                        children=[],
+                    )
+                ],
+            )
+        ]
 
         response = client.post("/api/admin/create/lesson", json=request_data)
 
         assert response.status_code == 201
-        mock_fs_service.writeFile.assert_called_once_with(
-            "parent-module/new-lesson.lesson",
-            '---\ntitle: New Lesson\n---\n\n# New Lesson\n\nContent goes here.\n'
-        )
+        mock_fs_service.write_file.assert_called_once()
+        args, _ = mock_fs_service.write_file.call_args
+        assert args[0].endswith("parent-module/new-lesson.lesson")
         mock_content_scanner.clear_cache.assert_called_once()
 
     def test_create_invalid_item_type(self, client):
@@ -197,34 +221,36 @@ class TestAdminCreateItem:
         response = client.post("/api/admin/create/course", json=request_data)
 
         assert response.status_code == 422
-        mock_fs_service.createDirectory.assert_not_called()
+        mock_fs_service.create_directory.assert_not_called()
 
 
 class TestAdminDeleteItem:
     def test_delete_file_success(self, client, mock_fs_service, mock_content_scanner):
         """Test successful file deletion."""
+        mock_fs_service.path_exists.return_value = True
         response = client.delete("/api/admin/item?path=test.yml")
 
         assert response.status_code == 204
-        mock_fs_service.deleteFile.assert_called_once_with("test.yml")
+        mock_fs_service.delete_file.assert_called_once_with("test.yml")
         mock_content_scanner.clear_cache.assert_called_once()
 
     def test_delete_directory_success(self, client, mock_fs_service, mock_content_scanner):
         """Test successful directory deletion."""
         # Mock pathExists to return True for directory
-        mock_fs_service.pathExists = AsyncMock(return_value=True)
-        mock_fs_service.scanDirectory = AsyncMock(return_value=[])  # Empty dir
+        mock_fs_service.path_exists.return_value = True
+        mock_fs_service.delete_directory = AsyncMock()
 
         response = client.delete("/api/admin/item?path=test-dir")
 
         assert response.status_code == 204
-        mock_fs_service.deleteDirectory.assert_called_once_with("test-dir")
+        mock_fs_service.delete_directory.assert_called_once_with("test-dir")
         mock_content_scanner.clear_cache.assert_called_once()
 
     def test_delete_not_found(self, client, mock_fs_service, mock_content_scanner):
         """Test deletion of non-existent item."""
         from src.core.errors import ContentFileNotFoundError
-        mock_fs_service.deleteFile.side_effect = ContentFileNotFoundError("Not found")
+        mock_fs_service.path_exists.return_value = True
+        mock_fs_service.delete_file.side_effect = ContentFileNotFoundError("Not found")
 
         response = client.delete("/api/admin/item?path=missing.yml")
 

@@ -1,8 +1,10 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 import re
 
 
 class CreateCourseRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     title: str = Field(..., min_length=1, max_length=200)
     slug: str = Field(..., min_length=1, max_length=100)
 
@@ -15,6 +17,8 @@ class CreateCourseRequest(BaseModel):
 
 
 class CreateModuleRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     title: str = Field(..., min_length=1, max_length=200)
     slug: str = Field(..., min_length=1, max_length=100)
     parent_slug: str = Field(..., min_length=1, max_length=100)
@@ -28,6 +32,8 @@ class CreateModuleRequest(BaseModel):
 
 
 class CreateLessonRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     title: str = Field(..., min_length=1, max_length=200)
     slug: str = Field(..., min_length=1, max_length=100)
     parent_slug: str = Field(..., min_length=1, max_length=100)
