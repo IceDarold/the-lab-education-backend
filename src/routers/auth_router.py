@@ -16,6 +16,11 @@ logger = get_logger(__name__)
 
 router = APIRouter()
 
+@router.options("/login")
+async def options_login(request: Request):
+    logger.info(f"OPTIONS request to /login from origin: {request.headers.get('origin')}, method: {request.method}, headers: {dict(request.headers)}")
+    return {}
+
 @router.post("/login", response_model=Token)
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
