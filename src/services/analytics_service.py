@@ -5,11 +5,15 @@ from collections import defaultdict
 from uuid import UUID
 from src.models.user_activity_log import UserActivityLog
 from src.schemas import TrackEventRequest
+from src.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class AnalyticsService:
     @staticmethod
     async def get_activity_details(user_id: UUID, db: AsyncSession) -> list[dict]:
+        logger.info(f"Starting get_activity_details for user: {user_id}")
         # Calculate the date one year ago
         one_year_ago = datetime.now() - timedelta(days=365)
 
@@ -52,10 +56,12 @@ class AnalyticsService:
         # Sort by date
         activity_list.sort(key=lambda x: x['date'])
 
+        logger.info(f"Ending get_activity_details for user: {user_id}")
         return activity_list
 
     @staticmethod
     async def track_activity(user_id: UUID, event_data: TrackEventRequest, db: AsyncSession):
+        logger.info(f"Starting track_activity for user: {user_id}")
         # Create a new UserActivityLog instance
         activity_log = UserActivityLog(
             user_id=user_id,
@@ -65,3 +71,4 @@ class AnalyticsService:
         # Add to session and commit
         db.add(activity_log)
         await db.commit()
+        logger.info(f"Ending track_activity for user: {user_id}")

@@ -1,14 +1,11 @@
 import asyncio
 from pathlib import Path
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, AsyncMock
 from uuid import UUID
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 
 from src.core.config import settings
-from src.core.security import get_current_user
-from src.main import app
 from src.schemas.user import User
 
 
@@ -49,21 +46,17 @@ def _override_user():
 
 
 @pytest.mark.asyncio
-async def test_get_lesson_content_success(tmp_path, monkeypatch):
+async def test_get_lesson_content_success(tmp_path, async_client, mock_security_functions, monkeypatch):
     content_root = tmp_path / "content"
     _write_lesson_file(content_root, "sample-course", "sample-lesson")
 
     monkeypatch.setattr(settings, "CONTENT_ROOT", str(content_root))
-    app.dependency_overrides[get_current_user] = _override_user
+    mock_security_functions['get_current_user'].return_value = _override_user()
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get(
-            "/api/v1/lessons/sample-lesson",
-            headers={"Authorization": "Bearer token"},
-        )
-
-    app.dependency_overrides.pop(get_current_user, None)
+    response = await async_client.get(
+        "/api/v1/lessons/sample-lesson",
+        headers={"Authorization": "Bearer token"},
+    )
 
     assert response.status_code == 200
     payload = response.json()
@@ -77,67 +70,55 @@ async def test_get_lesson_content_success(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_get_lesson_content_not_found(tmp_path, monkeypatch):
+async def test_get_lesson_content_not_found(tmp_path, async_client, mock_security_functions, monkeypatch):
     monkeypatch.setattr(settings, "CONTENT_ROOT", str(tmp_path / "content"))
-    app.dependency_overrides[get_current_user] = _override_user
+    mock_security_functions['get_current_user'].return_value = _override_user()
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get(
-            "/api/v1/lessons/missing-lesson",
-            headers={"Authorization": "Bearer token"},
-        )
+    response = await async_client.get(
+        "/api/v1/lessons/missing-lesson",
+        headers={"Authorization": "Bearer token"},
+    )
 
-    app.dependency_overrides.pop(get_current_user, None)
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_get_lesson_parse_error(tmp_path, monkeypatch):
+async def test_get_lesson_parse_error(tmp_path, async_client, mock_security_functions, monkeypatch):
     content_root = tmp_path / "content"
     lesson_dir = content_root / "courses" / "sample-course"
     lesson_dir.mkdir(parents=True, exist_ok=True)
     (lesson_dir / "broken.lesson").write_text("no-front-matter here")
 
     monkeypatch.setattr(settings, "CONTENT_ROOT", str(content_root))
-    app.dependency_overrides[get_current_user] = _override_user
+    mock_security_functions['get_current_user'].return_value = _override_user()
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get(
-            "/api/v1/lessons/broken",
-            headers={"Authorization": "Bearer token"},
-        )
+    response = await async_client.get(
+        "/api/v1/lessons/broken",
+        headers={"Authorization": "Bearer token"},
+    )
 
-    app.dependency_overrides.pop(get_current_user, None)
     assert response.status_code == 500
 
 
 @pytest.mark.asyncio
-async def test_complete_lesson_success():
-    app.dependency_overrides[get_current_user] = _override_user
+async def test_complete_lesson_success(async_client, mock_supabase_client, mock_security_functions, monkeypatch):
+    mock_security_functions['get_current_user'].return_value = _override_user()
 
-    with patch('src.db.session.get_supabase_client') as mock_get_client:
-        mock_supabase = MagicMock()
-        mock_get_client.return_value = mock_supabase
+    monkeypatch.setattr("src.db.session.get_supabase_client", lambda: mock_supabase_client)
 
-        # Mock upsert
-        mock_upsert_result = MagicMock()
-        mock_upsert_result.execute = MagicMock(return_value=AsyncMock(return_value={"data": None}))
-        mock_supabase.table.return_value.upsert.return_value = mock_upsert_result
+    # Mock upsert
+    mock_upsert_result = MagicMock()
+    mock_upsert_result.execute = MagicMock(return_value=AsyncMock(return_value={"data": None}))
+    mock_supabase_client.table.return_value.upsert.return_value = mock_upsert_result
 
-        # Mock rpc
-        mock_rpc_result = AsyncMock(return_value={"data": {"new_course_progress_percent": 75}})
-        mock_supabase.rpc.return_value = mock_rpc_result
+    # Mock rpc
+    mock_rpc_result = AsyncMock(return_value={"data": {"new_course_progress_percent": 75}})
+    mock_supabase_client.rpc.return_value = mock_rpc_result
 
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post(
-                "/api/v1/lessons/sample-course/sample-lesson/complete",
-                headers={"Authorization": "Bearer token"},
-            )
-
-    app.dependency_overrides.pop(get_current_user, None)
+    response = await async_client.post(
+        "/api/v1/lessons/sample-course/sample-lesson/complete",
+        headers={"Authorization": "Bearer token"},
+    )
 
     assert response.status_code == 200
     payload = response.json()
@@ -145,17 +126,13 @@ async def test_complete_lesson_success():
 
 
 @pytest.mark.asyncio
-async def test_complete_lesson_invalid_format_no_slash():
-    app.dependency_overrides[get_current_user] = _override_user
+async def test_complete_lesson_invalid_format_no_slash(async_client, mock_security_functions):
+    mock_security_functions['get_current_user'].return_value = _override_user()
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post(
-            "/api/v1/lessons/invalidlessonid/complete",
-            headers={"Authorization": "Bearer token"},
-        )
-
-    app.dependency_overrides.pop(get_current_user, None)
+    response = await async_client.post(
+        "/api/v1/lessons/invalidlessonid/complete",
+        headers={"Authorization": "Bearer token"},
+    )
 
     assert response.status_code == 400
     payload = response.json()
@@ -163,17 +140,13 @@ async def test_complete_lesson_invalid_format_no_slash():
 
 
 @pytest.mark.asyncio
-async def test_complete_lesson_invalid_format_empty_parts():
-    app.dependency_overrides[get_current_user] = _override_user
+async def test_complete_lesson_invalid_format_empty_parts(async_client, mock_security_functions):
+    mock_security_functions['get_current_user'].return_value = _override_user()
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post(
-            "/api/v1/lessons//sample-lesson/complete",
-            headers={"Authorization": "Bearer token"},
-        )
-
-    app.dependency_overrides.pop(get_current_user, None)
+    response = await async_client.post(
+        "/api/v1/lessons//sample-lesson/complete",
+        headers={"Authorization": "Bearer token"},
+    )
 
     assert response.status_code == 400
     payload = response.json()
@@ -181,83 +154,65 @@ async def test_complete_lesson_invalid_format_empty_parts():
 
 
 @pytest.mark.asyncio
-async def test_complete_lesson_upsert_failure():
-    app.dependency_overrides[get_current_user] = _override_user
+async def test_complete_lesson_upsert_failure(async_client, mock_supabase_client, mock_security_functions, monkeypatch):
+    mock_security_functions['get_current_user'].return_value = _override_user()
 
-    with patch('src.db.session.get_supabase_client') as mock_get_client:
-        mock_supabase = MagicMock()
-        mock_get_client.return_value = mock_supabase
+    monkeypatch.setattr("src.db.session.get_supabase_client", lambda: mock_supabase_client)
 
-        # Mock upsert to raise exception
-        mock_upsert_result = MagicMock()
-        mock_upsert_result.execute = MagicMock(return_value=AsyncMock(side_effect=Exception("Upsert failed")))
-        mock_supabase.table.return_value.upsert.return_value = mock_upsert_result
+    # Mock upsert to raise exception
+    mock_upsert_result = MagicMock()
+    mock_upsert_result.execute = MagicMock(return_value=AsyncMock(side_effect=Exception("Upsert failed")))
+    mock_supabase_client.table.return_value.upsert.return_value = mock_upsert_result
 
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post(
-                "/api/v1/lessons/sample-course/sample-lesson/complete",
-                headers={"Authorization": "Bearer token"},
-            )
-
-    app.dependency_overrides.pop(get_current_user, None)
+    response = await async_client.post(
+        "/api/v1/lessons/sample-course/sample-lesson/complete",
+        headers={"Authorization": "Bearer token"},
+    )
 
     assert response.status_code == 500  # Assuming internal server error for db failures
 
 
 @pytest.mark.asyncio
-async def test_complete_lesson_rpc_failure():
-    app.dependency_overrides[get_current_user] = _override_user
+async def test_complete_lesson_rpc_failure(async_client, mock_supabase_client, mock_security_functions, monkeypatch):
+    mock_security_functions['get_current_user'].return_value = _override_user()
 
-    with patch('src.db.session.get_supabase_client') as mock_get_client:
-        mock_supabase = MagicMock()
-        mock_get_client.return_value = mock_supabase
+    monkeypatch.setattr("src.db.session.get_supabase_client", lambda: mock_supabase_client)
 
-        # Mock upsert success
-        mock_upsert_result = MagicMock()
-        mock_upsert_result.execute = MagicMock(return_value=AsyncMock(return_value={"data": None}))
-        mock_supabase.table.return_value.upsert.return_value = mock_upsert_result
+    # Mock upsert success
+    mock_upsert_result = MagicMock()
+    mock_upsert_result.execute = MagicMock(return_value=AsyncMock(return_value={"data": None}))
+    mock_supabase_client.table.return_value.upsert.return_value = mock_upsert_result
 
-        # Mock rpc to raise exception
-        mock_supabase.rpc.return_value = AsyncMock(side_effect=Exception("RPC failed"))
+    # Mock rpc to raise exception
+    mock_supabase_client.rpc.return_value = AsyncMock(side_effect=Exception("RPC failed"))
 
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post(
-                "/api/v1/lessons/sample-course/sample-lesson/complete",
-                headers={"Authorization": "Bearer token"},
-            )
-
-    app.dependency_overrides.pop(get_current_user, None)
+    response = await async_client.post(
+        "/api/v1/lessons/sample-course/sample-lesson/complete",
+        headers={"Authorization": "Bearer token"},
+    )
 
     assert response.status_code == 500
 
 
 @pytest.mark.asyncio
-async def test_complete_lesson_missing_progress_data():
-    app.dependency_overrides[get_current_user] = _override_user
+async def test_complete_lesson_missing_progress_data(async_client, mock_supabase_client, mock_security_functions, monkeypatch):
+    mock_security_functions['get_current_user'].return_value = _override_user()
 
-    with patch('src.db.session.get_supabase_client') as mock_get_client:
-        mock_supabase = MagicMock()
-        mock_get_client.return_value = mock_supabase
+    monkeypatch.setattr("src.db.session.get_supabase_client", lambda: mock_supabase_client)
 
-        # Mock upsert
-        mock_upsert_result = MagicMock()
-        mock_upsert_result.execute = MagicMock(return_value=AsyncMock(return_value={"data": None}))
-        mock_supabase.table.return_value.upsert.return_value = mock_upsert_result
+    # Mock upsert
+    mock_upsert_result = MagicMock()
+    mock_upsert_result.execute = MagicMock(return_value=AsyncMock(return_value={"data": None}))
+    mock_supabase_client.table.return_value.upsert.return_value = mock_upsert_result
 
-        # Mock rpc with missing progress data
-        mock_rpc_result = AsyncMock(return_value={"data": {}})
-        mock_supabase.rpc.return_value = mock_rpc_result
+    # Mock rpc with missing progress data
+    mock_rpc_result = AsyncMock(return_value={"data": {}})
+    mock_supabase_client.rpc.return_value = mock_rpc_result
 
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post(
-                "/api/v1/lessons/sample-course/sample-lesson/complete",
-                headers={"Authorization": "Bearer token"},
-            )
-
-    app.dependency_overrides.pop(get_current_user, None)
+    response = await async_client.post(
+        "/api/v1/lessons/sample-course/sample-lesson/complete",
+        headers={"Authorization": "Bearer token"},
+    )
 
     assert response.status_code == 200
     payload = response.json()

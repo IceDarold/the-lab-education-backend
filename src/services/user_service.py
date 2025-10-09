@@ -27,6 +27,7 @@ class UserService:
 
     @staticmethod
     async def get_user_by_email(email: str, db: AsyncSession) -> Optional[User]:
+        logger.info(f"Starting get_user_by_email for: {email}")
         logger.debug(f"Looking up user by email: {email}")
 
         # Check cache first
@@ -35,6 +36,7 @@ class UserService:
         cached_user = cache.get(cache_key)
         if cached_user is not None:
             logger.debug(f"User found in cache: {email}")
+            logger.info(f"Ending get_user_by_email for: {email}")
             return cached_user
 
         # Not in cache, query database
@@ -48,6 +50,7 @@ class UserService:
                 cache.set(cache_key, user, ttl_seconds=300)
             else:
                 logger.debug(f"User not found: {email}")
+            logger.info(f"Ending get_user_by_email for: {email}")
             return user
         except SQLAlchemyError as e:
             logger.error(f"Database error looking up user {email}: {str(e)}")
@@ -118,6 +121,7 @@ class UserService:
 
     @staticmethod
     async def authenticate_user(email: str, password: str, db: AsyncSession) -> User:
+        logger.info(f"Starting authenticate_user for: {email}")
         logger.debug(f"Authenticating user: {email}")
         try:
             user = await UserService.get_user_by_email(email, db)
@@ -130,6 +134,7 @@ class UserService:
                 raise AuthenticationError("Invalid email or password")
 
             logger.info(f"Authentication successful for user: {email}")
+            logger.info(f"Ending authenticate_user for: {email}")
             return user
 
         except AuthenticationError:

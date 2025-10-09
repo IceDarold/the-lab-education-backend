@@ -15,6 +15,7 @@ logger = get_logger(__name__)
 class ProgressService:
     @staticmethod
     async def mark_lesson_as_complete(user_id: UUID, course_slug: str, lesson_slug: str, db: AsyncSession) -> None:
+        logger.info(f"Starting mark_lesson_as_complete for user={user_id}, course={course_slug}, lesson={lesson_slug}")
         logger.info(f"Marking lesson as complete: user={user_id}, course={course_slug}, lesson={lesson_slug}")
         try:
             # Validate inputs
@@ -56,6 +57,7 @@ class ProgressService:
             # Commit all changes
             await db.commit()
             logger.info(f"Successfully marked lesson as complete for user {user_id}")
+            logger.info(f"Ending mark_lesson_as_complete for user={user_id}, course={course_slug}, lesson={lesson_slug}")
 
         except SQLAlchemyError as e:
             logger.error(f"Database error marking lesson complete for user {user_id}: {str(e)}")
@@ -68,6 +70,7 @@ class ProgressService:
 
     @staticmethod
     async def get_user_progress_for_course(user_id: UUID, course_slug: str, db: AsyncSession, content_service: ContentScannerService) -> dict:
+        logger.info(f"Starting get_user_progress_for_course for user {user_id} in course {course_slug}")
         logger.debug(f"Getting progress for user {user_id} in course {course_slug}")
         try:
             # Validate inputs
@@ -91,6 +94,7 @@ class ProgressService:
             percentage = (completed / total * 100) if total > 0 else 0.0
 
             logger.debug(f"Progress calculated: {completed}/{total} ({percentage:.1f}%) for user {user_id}")
+            logger.info(f"Ending get_user_progress_for_course for user {user_id} in course {course_slug}")
             return {
                 'completed': completed,
                 'total': total,

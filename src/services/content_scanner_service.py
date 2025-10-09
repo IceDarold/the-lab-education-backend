@@ -10,7 +10,6 @@ class ContentScannerService:
     def __init__(self, fs_service: FileSystemService):
         self.fs_service = fs_service
 
-    @cached(cache=TTLCache(maxsize=1, ttl=3600))
     async def build_content_tree(self) -> list[ContentNode]:
         # Scan the root directory (assuming 'courses' is the root for content)
         items = await self.fs_service.scan_directory('courses')
@@ -74,3 +73,17 @@ class ContentScannerService:
 
     def clear_cache(self):
         self.build_content_tree.cache_clear()
+
+    async def get_course_lesson_slugs(self, course_slug: str) -> list[str]:
+        """Get list of lesson slugs for a given course."""
+        try:
+            items = await self.fs_service.scan_directory(f"courses/{course_slug}")
+            lesson_slugs = []
+            for item in items:
+                if item.type == 'file' and item.name.endswith('.lesson'):
+                    slug = item.name.replace('.lesson', '')
+                    lesson_slugs.append(slug)
+            return lesson_slugs
+        except Exception as e:
+            # If directory not found or other error, return empty list
+            return []

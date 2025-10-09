@@ -1,24 +1,14 @@
-import os
-import sys
-from pathlib import Path
+import pytest
 from uuid import UUID
 from unittest.mock import AsyncMock, MagicMock
-
-import pytest
 from httpx import ASGITransport, AsyncClient
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-os.environ.setdefault("SUPABASE_URL", "https://test.supabase.co")
-os.environ.setdefault("SUPABASE_KEY", "test-key")
-os.environ.setdefault("SECRET_KEY", "test-secret")
-
+from tests.utils import assert_success_response, assert_created, create_test_user
 from src.main import app
 from src.core.security import get_current_user
 from src.schemas.user import User
 
 
-@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_enroll_in_course_success(monkeypatch):
     test_user = User(user_id=UUID("11111111-1111-1111-1111-111111111111"), full_name="Test", email="user@example.com")
 
@@ -81,7 +71,7 @@ async def test_enroll_in_course_success(monkeypatch):
     insert_call.execute.assert_awaited()
 
 
-@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_get_my_courses(monkeypatch):
     test_user = User(user_id=UUID("11111111-1111-1111-1111-111111111111"), full_name="Test", email="user@example.com")
 
@@ -134,7 +124,7 @@ async def test_get_my_courses(monkeypatch):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_get_course_details_with_progress(monkeypatch):
     test_user = User(user_id=UUID("11111111-1111-1111-1111-111111111111"), full_name="Test", email="user@example.com")
 
@@ -196,7 +186,7 @@ async def test_get_course_details_with_progress(monkeypatch):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_get_my_courses_unauthorized():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as async_client:

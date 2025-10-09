@@ -1,16 +1,11 @@
-import sys
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
-
 import pytest
+from unittest.mock import AsyncMock, MagicMock
 from httpx import ASGITransport, AsyncClient
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
+from tests.utils import assert_success_response, assert_error_response
 from src.main import app
 
 
-@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_list_courses_success(monkeypatch):
     client_mock = MagicMock()
 
@@ -50,7 +45,7 @@ async def test_list_courses_success(monkeypatch):
     assert payload[0]["cover_image_url"] == "https://example/cover.png"
 
 
-@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_get_course_details_success(monkeypatch):
     client_mock = MagicMock()
     rpc_payload = {
@@ -83,7 +78,7 @@ async def test_get_course_details_success(monkeypatch):
     assert data["modules"][0]["lessons"][0]["title"] == "What is ML?"
 
 
-@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_get_course_details_not_found(monkeypatch):
     client_mock = MagicMock()
     client_mock.rpc = AsyncMock(return_value=MagicMock(data=None))
@@ -96,7 +91,7 @@ async def test_get_course_details_not_found(monkeypatch):
     assert resp.status_code == 404
 
 
-@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_list_courses_pagination_validation():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

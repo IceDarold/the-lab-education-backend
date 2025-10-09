@@ -32,6 +32,7 @@ class SessionService:
         expires_delta: Optional[timedelta] = None
     ) -> UserSession:
         """Create a new user session"""
+        logger.info(f"Starting create_session for user: {user_id}")
         logger.debug(f"Creating session for user: {user_id}")
         try:
             if not refresh_token:
@@ -55,6 +56,7 @@ class SessionService:
             await db.commit()
             await db.refresh(session)
             logger.info(f"Successfully created session for user: {user_id}")
+            logger.info(f"Ending create_session for user: {user_id}")
             return session
 
         except SQLAlchemyError as e:
@@ -69,6 +71,7 @@ class SessionService:
     @staticmethod
     async def get_session_by_token_hash(db: AsyncSession, token_hash: str) -> Optional[UserSession]:
         """Get session by refresh token hash"""
+        logger.info("Starting get_session_by_token_hash")
         logger.debug("Looking up session by token hash")
         try:
             query = select(UserSession).where(
@@ -82,6 +85,7 @@ class SessionService:
                 logger.debug(f"Found active session for user: {session.user_id}")
             else:
                 logger.debug("No active session found for token hash")
+            logger.info("Ending get_session_by_token_hash")
             return session
         except SQLAlchemyError as e:
             logger.error(f"Database error looking up session: {str(e)}")

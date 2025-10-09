@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 from src.dependencies import validate_content_size
 
 
+@pytest.mark.unit
 class TestValidateContentSize:
     def test_validate_content_size_valid(self):
         """Test validating content within size limit."""
@@ -32,7 +33,7 @@ class TestValidateContentSize:
         with pytest.raises(HTTPException) as exc_info:
             validate_content_size(content, max_size_mb)
 
-        assert exc_info.value.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert exc_info.value.status_code == status.HTTP_413_CONTENT_TOO_LARGE
         assert "Content size (1048577 bytes) exceeds maximum allowed size (1048576 bytes)" in exc_info.value.detail
 
     def test_validate_content_size_different_max_sizes(self):
@@ -47,7 +48,7 @@ class TestValidateContentSize:
         with pytest.raises(HTTPException) as exc_info:
             validate_content_size(content, max_size_mb=0)
 
-        assert exc_info.value.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert exc_info.value.status_code == status.HTTP_413_CONTENT_TOO_LARGE
 
     def test_validate_content_size_unicode_content(self):
         """Test validating content with unicode characters."""
@@ -76,5 +77,5 @@ class TestValidateContentSize:
         with pytest.raises(HTTPException) as exc_info:
             validate_content_size(content)  # Use default 10MB
 
-        assert exc_info.value.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert exc_info.value.status_code == status.HTTP_413_CONTENT_TOO_LARGE
         assert "Content size (10485761 bytes) exceeds maximum allowed size (10485760 bytes)" in exc_info.value.detail
