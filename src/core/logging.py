@@ -1,3 +1,4 @@
+import os
 import sys
 from contextvars import ContextVar
 from loguru import logger
