@@ -7,53 +7,47 @@ from src.schemas.user import UserCreate
 from src.schemas import UserFilter
 
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.unit
 
 
+@pytest.mark.unit
 class TestUserService:
-    @pytest.fixture
-    def mock_db(self):
-        return AsyncMock()
 
-    @pytest.fixture
-    def sample_user(self):
-        user = MagicMock(spec=User)
-        user.id = 1
-        user.email = "test@example.com"
-        user.full_name = "Test User"
-        user.hashed_password = "hashed_password"
-        user.role = "STUDENT"
-        user.status = "ACTIVE"
-        return user
-
-    async def test_get_user_by_email_found(self, mock_db, sample_user):
+    async def test_get_user_by_email_found(self, mock_db_session):
         # Arrange
-        mock_db.execute.return_value.scalar_one_or_none.return_value = sample_user
+        sample_user = MagicMock(spec=User)
+        sample_user.id = 1
+        sample_user.email = "test@example.com"
+        sample_user.full_name = "Test User"
+        sample_user.hashed_password = "hashed_password"
+        sample_user.role = "STUDENT"
+        sample_user.status = "ACTIVE"
+        mock_db_session.execute.return_value.scalar_one_or_none.return_value = sample_user
 
         # Act
-        result = await UserService.get_user_by_email("test@example.com", mock_db)
+        result = await UserService.get_user_by_email("test@example.com", mock_db_session)
 
         # Assert
         assert result == sample_user
-        mock_db.execute.assert_called_once()
+        mock_db_session.execute.assert_called_once()
 
-    async def test_get_user_by_email_not_found(self, mock_db):
+    async def test_get_user_by_email_not_found(self, mock_db_session):
         # Arrange
-        mock_db.execute.return_value.scalar_one_or_none.return_value = None
+        mock_db_session.execute.return_value.scalar_one_or_none.return_value = None
 
         # Act
-        result = await UserService.get_user_by_email("nonexistent@example.com", mock_db)
+        result = await UserService.get_user_by_email("nonexistent@example.com", mock_db_session)
 
         # Assert
         assert result is None
-        mock_db.execute.assert_called_once()
+        mock_db_session.execute.assert_called_once()
 
-    async def test_create_user_success(self, mock_db, sample_user):
+    async def test_create_user_success(self, mock_db_session):
         # Arrange
         user_data = UserCreate(full_name="Test User", email="test@example.com", password="password123")
-        mock_db.add.return_value = None
-        mock_db.commit.return_value = None
-        mock_db.refresh.return_value = None
+        mock_db_session.add.return_value = None
+        mock_db_session.commit.return_value = None
+        mock_db_session.refresh.return_value = None
 
         # Mock the created user
         created_user = MagicMock(spec=User)
@@ -65,151 +59,220 @@ class TestUserService:
         created_user.status = "ACTIVE"
 
         # Act
-        result = await UserService.create_user(user_data, mock_db)
+        result = await UserService.create_user(user_data, mock_db_session)
 
         # Assert
         assert result.full_name == "Test User"
         assert result.email == "test@example.com"
         assert result.hashed_password != "password123"  # Should be hashed
-        mock_db.add.assert_called_once()
-        mock_db.commit.assert_called_once()
-        mock_db.refresh.assert_called_once()
+        mock_db_session.add.assert_called_once()
+        mock_db_session.commit.assert_called_once()
+        mock_db_session.refresh.assert_called_once()
 
-    async def test_create_user_integrity_error(self, mock_db):
+    async def test_create_user_integrity_error(self, mock_db_session):
         # Arrange
         user_data = UserCreate(full_name="Test User", email="test@example.com", password="password123")
-        mock_db.add.return_value = None
-        mock_db.commit.side_effect = IntegrityError(None, None, None)
+        mock_db_session.add.return_value = None
+        mock_db_session.commit.side_effect = IntegrityError(None, None, None)
 
         # Act & Assert
         with pytest.raises(IntegrityError):
-            await UserService.create_user(user_data, mock_db)
+            await UserService.create_user(user_data, mock_db_session)
 
-    async def test_authenticate_user_success(self, mock_db, sample_user):
+    async def test_authenticate_user_success(self, mock_db_session):
         # Arrange
-        mock_db.execute.return_value.scalar_one_or_none.return_value = sample_user
+        sample_user = MagicMock(spec=User)
+        sample_user.id = 1
+        sample_user.email = "test@example.com"
+        sample_user.full_name = "Test User"
+        sample_user.hashed_password = "hashed_password"
+        sample_user.role = "STUDENT"
+        sample_user.status = "ACTIVE"
+        mock_db_session.execute.return_value.scalar_one_or_none.return_value = sample_user
 
         # Act
-        result = await UserService.authenticate_user("test@example.com", "password123", mock_db)
+        result = await UserService.authenticate_user("test@example.com", "password123", mock_db_session)
 
         # Assert
         assert result == sample_user
 
-    async def test_authenticate_user_user_not_found(self, mock_db):
+    async def test_authenticate_user_user_not_found(self, mock_db_session):
         # Arrange
-        mock_db.execute.return_value.scalar_one_or_none.return_value = None
+        mock_db_session.execute.return_value.scalar_one_or_none.return_value = None
 
         # Act
-        result = await UserService.authenticate_user("nonexistent@example.com", "password123", mock_db)
+        result = await UserService.authenticate_user("nonexistent@example.com", "password123", mock_db_session)
 
         # Assert
         assert result is None
 
-    async def test_authenticate_user_wrong_password(self, mock_db, sample_user):
+    async def test_authenticate_user_wrong_password(self, mock_db_session):
         # Arrange
+        sample_user = MagicMock(spec=User)
+        sample_user.id = 1
+        sample_user.email = "test@example.com"
+        sample_user.full_name = "Test User"
         sample_user.hashed_password = "different_hash"
-        mock_db.execute.return_value.scalar_one_or_none.return_value = sample_user
+        sample_user.role = "STUDENT"
+        sample_user.status = "ACTIVE"
+        mock_db_session.execute.return_value.scalar_one_or_none.return_value = sample_user
 
         # Act
-        result = await UserService.authenticate_user("test@example.com", "wrongpassword", mock_db)
+        result = await UserService.authenticate_user("test@example.com", "wrongpassword", mock_db_session)
 
         # Assert
         assert result is None
 
-    async def test_list_users_no_filters(self, mock_db, sample_user):
+    async def test_list_users_no_filters(self, mock_db_session):
         # Arrange
-        mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
+        sample_user = MagicMock(spec=User)
+        sample_user.id = 1
+        sample_user.email = "test@example.com"
+        sample_user.full_name = "Test User"
+        sample_user.hashed_password = "hashed_password"
+        sample_user.role = "STUDENT"
+        sample_user.status = "ACTIVE"
+        mock_db_session.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, UserFilter())
+        result = await UserService.list_users(mock_db_session, UserFilter())
 
         # Assert
         assert len(result) == 1
         assert result[0] == sample_user
-        mock_db.execute.assert_called_once()
+        mock_db_session.execute.assert_called_once()
 
-    async def test_list_users_with_search(self, mock_db, sample_user):
+    async def test_list_users_with_search(self, mock_db_session):
         # Arrange
-        mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
+        sample_user = MagicMock(spec=User)
+        sample_user.id = 1
+        sample_user.email = "test@example.com"
+        sample_user.full_name = "Test User"
+        sample_user.hashed_password = "hashed_password"
+        sample_user.role = "STUDENT"
+        sample_user.status = "ACTIVE"
+        mock_db_session.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, UserFilter(search="Test"))
-
-        # Assert
-        assert len(result) == 1
-        assert result[0] == sample_user
-
-    async def test_list_users_with_role_filter(self, mock_db, sample_user):
-        # Arrange
-        mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
-
-        # Act
-        result = await UserService.list_users(mock_db, UserFilter(role="STUDENT"))
-
-        # Assert
-        assert len(result) == 1
-        assert result[0] == sample_user
-
-    async def test_list_users_with_status_filter(self, mock_db, sample_user):
-        # Arrange
-        mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
-
-        # Act
-        result = await UserService.list_users(mock_db, UserFilter(status="ACTIVE"))
+        result = await UserService.list_users(mock_db_session, UserFilter(search="Test"))
 
         # Assert
         assert len(result) == 1
         assert result[0] == sample_user
 
-    async def test_list_users_with_sorting_desc(self, mock_db, sample_user):
+    async def test_list_users_with_role_filter(self, mock_db_session):
         # Arrange
-        mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
+        sample_user = MagicMock(spec=User)
+        sample_user.id = 1
+        sample_user.email = "test@example.com"
+        sample_user.full_name = "Test User"
+        sample_user.hashed_password = "hashed_password"
+        sample_user.role = "STUDENT"
+        sample_user.status = "ACTIVE"
+        mock_db_session.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, UserFilter(sort_by="email", sort_order="desc"))
+        result = await UserService.list_users(mock_db_session, UserFilter(role="STUDENT"))
 
         # Assert
         assert len(result) == 1
         assert result[0] == sample_user
 
-    async def test_list_users_with_sorting_asc(self, mock_db, sample_user):
+    async def test_list_users_with_status_filter(self, mock_db_session):
         # Arrange
-        mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
+        sample_user = MagicMock(spec=User)
+        sample_user.id = 1
+        sample_user.email = "test@example.com"
+        sample_user.full_name = "Test User"
+        sample_user.hashed_password = "hashed_password"
+        sample_user.role = "STUDENT"
+        sample_user.status = "ACTIVE"
+        mock_db_session.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, UserFilter(sort_by="full_name", sort_order="asc"))
+        result = await UserService.list_users(mock_db_session, UserFilter(status="ACTIVE"))
 
         # Assert
         assert len(result) == 1
         assert result[0] == sample_user
 
-    async def test_list_users_with_pagination(self, mock_db, sample_user):
+    async def test_list_users_with_sorting_desc(self, mock_db_session):
         # Arrange
-        mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
+        sample_user = MagicMock(spec=User)
+        sample_user.id = 1
+        sample_user.email = "test@example.com"
+        sample_user.full_name = "Test User"
+        sample_user.hashed_password = "hashed_password"
+        sample_user.role = "STUDENT"
+        sample_user.status = "ACTIVE"
+        mock_db_session.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, UserFilter(skip=10, limit=5))
+        result = await UserService.list_users(mock_db_session, UserFilter(sort_by="email", sort_order="desc"))
 
         # Assert
         assert len(result) == 1
         assert result[0] == sample_user
 
-    async def test_list_users_empty_result(self, mock_db):
+    async def test_list_users_with_sorting_asc(self, mock_db_session):
         # Arrange
-        mock_db.execute.return_value.scalars.return_value.all.return_value = []
+        sample_user = MagicMock(spec=User)
+        sample_user.id = 1
+        sample_user.email = "test@example.com"
+        sample_user.full_name = "Test User"
+        sample_user.hashed_password = "hashed_password"
+        sample_user.role = "STUDENT"
+        sample_user.status = "ACTIVE"
+        mock_db_session.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, UserFilter())
+        result = await UserService.list_users(mock_db_session, UserFilter(sort_by="full_name", sort_order="asc"))
+
+        # Assert
+        assert len(result) == 1
+        assert result[0] == sample_user
+
+    async def test_list_users_with_pagination(self, mock_db_session):
+        # Arrange
+        sample_user = MagicMock(spec=User)
+        sample_user.id = 1
+        sample_user.email = "test@example.com"
+        sample_user.full_name = "Test User"
+        sample_user.hashed_password = "hashed_password"
+        sample_user.role = "STUDENT"
+        sample_user.status = "ACTIVE"
+        mock_db_session.execute.return_value.scalars.return_value.all.return_value = [sample_user]
+
+        # Act
+        result = await UserService.list_users(mock_db_session, UserFilter(skip=10, limit=5))
+
+        # Assert
+        assert len(result) == 1
+        assert result[0] == sample_user
+
+    async def test_list_users_empty_result(self, mock_db_session):
+        # Arrange
+        mock_db_session.execute.return_value.scalars.return_value.all.return_value = []
+
+        # Act
+        result = await UserService.list_users(mock_db_session, UserFilter())
 
         # Assert
         assert result == []
 
-    async def test_list_users_invalid_sort_by(self, mock_db, sample_user):
+    async def test_list_users_invalid_sort_by(self, mock_db_session):
         # Arrange
-        mock_db.execute.return_value.scalars.return_value.all.return_value = [sample_user]
+        sample_user = MagicMock(spec=User)
+        sample_user.id = 1
+        sample_user.email = "test@example.com"
+        sample_user.full_name = "Test User"
+        sample_user.hashed_password = "hashed_password"
+        sample_user.role = "STUDENT"
+        sample_user.status = "ACTIVE"
+        mock_db_session.execute.return_value.scalars.return_value.all.return_value = [sample_user]
 
         # Act
-        result = await UserService.list_users(mock_db, UserFilter(sort_by="invalid_field"))
+        result = await UserService.list_users(mock_db_session, UserFilter(sort_by="invalid_field"))
 
         # Assert
         assert len(result) == 1

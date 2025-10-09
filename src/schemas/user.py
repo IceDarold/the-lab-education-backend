@@ -15,8 +15,9 @@ class UserCreate(BaseModel):
     def validate_email(cls, v):
         try:
             # Use email-validator library for robust validation
-            valid = validate_email(v)
-            return valid.email  # Return normalized email
+            # Disable deliverability check for test emails and simplicity
+            valid = validate_email(v, check_deliverability=False)
+            return valid.normalized  # Return normalized email
         except EmailNotValidError as e:
             raise ValueError(f'Invalid email format: {str(e)}')
 
@@ -32,8 +33,9 @@ class User(BaseModel):
     def validate_email(cls, v):
         try:
             # Use email-validator library for robust validation
-            valid = validate_email(v)
-            return valid.email  # Return normalized email
+            # Disable deliverability check for test emails and simplicity
+            valid = validate_email(v, check_deliverability=False)
+            return valid.normalized  # Return normalized email
         except EmailNotValidError as e:
             raise ValueError(f'Invalid email format: {str(e)}')
 
@@ -46,8 +48,9 @@ class CheckEmailRequest(BaseModel):
     def validate_email(cls, v):
         try:
             # Use email-validator library for robust validation
-            valid = validate_email(v)
-            return valid.email  # Return normalized email
+            # Disable deliverability check for test emails and simplicity
+            valid = validate_email(v, check_deliverability=False)
+            return valid.normalized  # Return normalized email
         except EmailNotValidError as e:
             raise ValueError(f'Invalid email format: {str(e)}')
 
@@ -60,8 +63,9 @@ class ForgotPasswordRequest(BaseModel):
     def validate_email(cls, v):
         try:
             # Use email-validator library for robust validation
-            valid = validate_email(v)
-            return valid.email  # Return normalized email
+            # Disable deliverability check for test emails and simplicity
+            valid = validate_email(v, check_deliverability=False)
+            return valid.normalized  # Return normalized email
         except EmailNotValidError as e:
             raise ValueError(f'Invalid email format: {str(e)}')
 
@@ -82,8 +86,9 @@ class UserUpdate(BaseModel):
         if v is not None:
             try:
                 # Use email-validator library for robust validation
-                valid = validate_email(v)
-                return valid.email  # Return normalized email
+                # Disable deliverability check for test emails and simplicity
+                valid = validate_email(v, check_deliverability=False)
+                return valid.normalized  # Return normalized email
             except EmailNotValidError as e:
                 raise ValueError(f'Invalid email format: {str(e)}')
         return v
@@ -103,8 +108,9 @@ class UserResponse(BaseModel):
     def validate_email(cls, v):
         try:
             # Use email-validator library for robust validation
-            valid = validate_email(v)
-            return valid.email  # Return normalized email
+            # Disable deliverability check for test emails and simplicity
+            valid = validate_email(v, check_deliverability=False)
+            return valid.normalized  # Return normalized email
         except EmailNotValidError as e:
             raise ValueError(f'Invalid email format: {str(e)}')
 

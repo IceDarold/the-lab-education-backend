@@ -12,6 +12,7 @@ from src.schemas.quiz import QuizCheckRequest, QuizCheckResponse
 from src.schemas.token import RefreshTokenRequest, RefreshTokenResponse
 
 
+@pytest.mark.unit
 class TestCreateCourseRequest:
     def test_valid_creation(self):
         """Test successful creation with valid data."""
@@ -44,6 +45,7 @@ class TestCreateCourseRequest:
         assert "slug" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestCreateModuleRequest:
     def test_valid_creation(self):
         """Test successful creation with valid data."""
@@ -80,6 +82,7 @@ class TestCreateModuleRequest:
         assert fields == {"title", "slug", "parent_slug"}
 
 
+@pytest.mark.unit
 class TestCreateLessonRequest:
     def test_valid_creation(self):
         """Test successful creation with valid data."""
@@ -116,6 +119,7 @@ class TestCreateLessonRequest:
         assert fields == {"title", "slug", "parent_slug"}
 
 
+@pytest.mark.unit
 class TestUserCreate:
     def test_valid_creation(self):
         """Test successful creation with valid data."""
@@ -179,6 +183,7 @@ class TestUserCreate:
         assert "email" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestUserUpdate:
     def test_valid_update_all_fields(self):
         """Test successful update with all fields."""
@@ -216,6 +221,7 @@ class TestUserUpdate:
         assert "email" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestUserResponse:
     def test_valid_response(self):
         """Test successful serialization."""
@@ -247,6 +253,7 @@ class TestUserResponse:
         assert "full_name" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestLessonCompleteRequest:
     def test_valid_request(self):
         """Test successful creation with valid course_slug."""
@@ -272,6 +279,7 @@ class TestLessonCompleteRequest:
         assert "course_slug" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestUsersListResponse:
     def test_valid_response(self):
         """Test successful creation with valid pagination fields."""
@@ -309,6 +317,7 @@ class TestUsersListResponse:
         assert response.total_items == 0
 
 
+@pytest.mark.unit
 class TestUserFilter:
     def test_valid_filter_all_fields(self):
         """Test successful creation with all filter fields."""
@@ -347,6 +356,7 @@ class TestUserFilter:
         assert "search" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestDailyActivity:
     def test_valid_activity(self):
         """Test successful creation with valid data."""
@@ -377,6 +387,7 @@ class TestDailyActivity:
         assert "date" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestActivityDetailsResponse:
     def test_valid_response(self):
         """Test successful creation with activity list."""
@@ -391,6 +402,7 @@ class TestActivityDetailsResponse:
         assert len(response.activities) == 0
 
 
+@pytest.mark.unit
 class TestContentNode:
     def test_valid_node(self):
         """Test successful creation of ContentNode."""
@@ -414,6 +426,7 @@ class TestContentNode:
         assert "name" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestCoursePublic:
     def test_valid_course(self):
         """Test successful creation of CoursePublic."""
@@ -449,6 +462,7 @@ class TestCoursePublic:
         assert "slug" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestLessonContent:
     def test_valid_lesson(self):
         """Test successful creation of LessonContent."""
@@ -477,6 +491,7 @@ class TestLessonContent:
         assert "slug" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestQuizCheckRequest:
     def test_valid_request(self):
         """Test successful creation of QuizCheckRequest."""
@@ -494,6 +509,7 @@ class TestQuizCheckRequest:
         assert "selected_answer_id" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestQuizCheckResponse:
     def test_valid_response(self):
         """Test successful creation of QuizCheckResponse."""
@@ -511,6 +527,7 @@ class TestQuizCheckResponse:
         assert "correct_answer_id" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestRefreshTokenRequest:
     def test_valid_request(self):
         """Test successful creation of RefreshTokenRequest."""
@@ -524,6 +541,7 @@ class TestRefreshTokenRequest:
         assert "refresh_token" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestRefreshTokenResponse:
     def test_valid_response(self):
         """Test successful creation of RefreshTokenResponse."""
@@ -548,6 +566,7 @@ class TestRefreshTokenResponse:
         assert response.token_type == "bearer"
 
 
+@pytest.mark.unit
 class TestUser:
     def test_valid_user(self):
         """Test successful creation of User."""
@@ -583,6 +602,7 @@ class TestUser:
         assert "email" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestCheckEmailRequest:
     def test_valid_request(self):
         """Test successful creation of CheckEmailRequest."""
@@ -602,6 +622,7 @@ class TestCheckEmailRequest:
         assert "email" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestForgotPasswordRequest:
     def test_valid_request(self):
         """Test successful creation of ForgotPasswordRequest."""
@@ -621,6 +642,7 @@ class TestForgotPasswordRequest:
         assert "email" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestResetPasswordRequest:
     def test_valid_request(self):
         """Test successful creation of ResetPasswordRequest."""
@@ -641,6 +663,7 @@ class TestResetPasswordRequest:
         assert "new_password" in str(exc_info.value)
 
 
+@pytest.mark.unit
 class TestLessonCompleteResponse:
     def test_valid_response(self):
         """Test successful creation of LessonCompleteResponse."""

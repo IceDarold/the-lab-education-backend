@@ -78,7 +78,7 @@ async def get_lesson(
         # Parse the lesson content
         try:
             logger.debug(f"Parsing lesson content for {lesson_path}")
-            lesson_json = await ulf_parser_service.parse(lesson_content)
+            lesson_json = ulf_parser_service.parse(lesson_content)
 
         except ParsingError as e:
             logger.error(f"Parsing error for lesson {lesson_path}: {str(e)}")

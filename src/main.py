@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from slowapi.middleware import SlowAPIMiddleware
+from contextlib import asynccontextmanager
 from slowapi.errors import RateLimitExceeded
 
 from src.api.v1 import admin, auth, courses, dashboard, lessons, quizzes
@@ -17,14 +18,8 @@ from src.core.rate_limiting import limiter
 from src.dependencies import get_fs_service, get_content_scanner, get_ulf_parser
 
 
-app = FastAPI(title="ML-Practicum API")
-
-# Setup logging
-app_logger.info("Starting ML-Practicum API")
-
-
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """
     Validate critical environment variables on startup.
     This ensures the app fails fast if required configuration is missing.
@@ -44,10 +39,19 @@ async def startup_event():
         app_logger.error(f"Startup validation failed: {e}")
         raise
 
+    yield
+
+
+app = FastAPI(title="ML-Practicum API", lifespan=lifespan)
+
+# Setup logging
+app_logger.info("Starting ML-Practicum API")
+
 # Add request ID middleware
 app.add_middleware(RequestIDMiddleware)
 
 # Add rate limiting middleware
+app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 
 # Exception handlers

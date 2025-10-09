@@ -20,6 +20,7 @@ class ProfileService:
         db: AsyncSession = None
     ) -> Profile:
         """Create a new profile record"""
+        logger.info(f"Starting create_profile for: {email}")
         logger.debug(f"Creating profile for user: {profile_id}")
         try:
             # Validate input
@@ -46,6 +47,7 @@ class ProfileService:
                 pass
 
             logger.info(f"Successfully created profile: {profile_id}")
+            logger.info(f"Ending create_profile for: {email}")
             return profile
 
         except IntegrityError as e:

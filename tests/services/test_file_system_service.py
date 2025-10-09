@@ -8,9 +8,10 @@ pytestmark = pytest.mark.asyncio
 
 
 class TestFileSystemService:
-    def setup_method(self, tmp_path):
+    @pytest.fixture(autouse=True)
+    def setup_service(self, tmp_path):
         self.tmp_path = tmp_path
-        self.content_root = tmp_path / 'content'
+        self.content_root = Path(tmp_path) / 'content'
         self.service = FileSystemService()
         self.service.content_root = self.content_root
 

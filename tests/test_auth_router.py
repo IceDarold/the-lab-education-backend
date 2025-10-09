@@ -14,6 +14,7 @@ os.environ.setdefault("SUPABASE_URL", "https://test.supabase.co")
 os.environ.setdefault("SUPABASE_KEY", "test-key")
 os.environ.setdefault("SECRET_KEY", "test-secret")
 
+from src.core.rate_limiting import limiter
 from src.routers.auth_router import router as auth_router
 from src.schemas.user import UserCreate
 from src.schemas.token import RefreshTokenRequest
@@ -78,6 +79,7 @@ def mock_security_functions():
 def test_app(mock_db, mock_supabase_client, mock_supabase_admin_client, mock_user_service, mock_session_service, mock_security_functions):
     """Create test FastAPI app with mocked dependencies."""
     app = FastAPI()
+    app.state.limiter = limiter
     app.include_router(auth_router, prefix="/auth")
 
     # Mock dependencies

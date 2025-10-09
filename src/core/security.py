@@ -45,7 +45,7 @@ def verify_refresh_token(token: str):
         return payload
     except jwt.ExpiredSignatureError:
         raise AuthenticationError("Refresh token expired")
-    except jwt.JWTError:
+    except jwt.exceptions.DecodeError:
         raise AuthenticationError("Invalid refresh token")
 
 
@@ -64,7 +64,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
             raise AuthenticationError("Invalid token payload")
     except jwt.ExpiredSignatureError:
         raise AuthenticationError("Token expired")
-    except jwt.JWTError:
+    except jwt.exceptions.DecodeError:
         raise AuthenticationError("Invalid authentication credentials")
 
     # For now, return basic user info from token
