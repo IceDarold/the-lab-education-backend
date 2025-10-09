@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "pip install -r requirements.txt",
+  "installCommand": "pip install poetry && poetry install",
   "buildCommand": "echo 'Build completed'",
   "devCommand": "uvicorn api.index:app --host 0.0.0.0 --port $PORT",
   "functions": {
