@@ -2,9 +2,11 @@ import pytest
 from fastapi.testclient import TestClient
 from fastapi import FastAPI
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
 from src.api.v1.admin import router as admin_router
 from src.schemas.content_node import ContentNode
 from src.schemas.api import CreateCourseRequest, CreateModuleRequest, CreateLessonRequest
+from src.schemas.user import User
 
 
 @pytest.fixture
@@ -31,21 +33,30 @@ def mock_content_scanner():
 @pytest.fixture
 def mock_get_current_admin():
     """Mock get_current_admin dependency."""
-    return MagicMock()
+    return User.model_construct(
+        user_id=uuid4(),
+        full_name="Admin User",
+        email="admin@test.com",
+        role="admin"
+    )
 
 
 @pytest.fixture
 def test_app(mock_fs_service, mock_content_scanner, mock_get_current_admin):
     """Create test FastAPI app with mocked dependencies."""
     app = FastAPI()
-    app.include_router(admin_router)
 
-    # Override dependencies
+    # Override dependencies before including router
+    async def mock_get_current_admin_dep():
+        return mock_get_current_admin
+
     app.dependency_overrides = {
         "src.dependencies.get_fs_service": lambda: mock_fs_service,
         "src.dependencies.get_content_scanner": lambda: mock_content_scanner,
-        "src.core.security.get_current_admin": lambda: mock_get_current_admin,
+        "src.core.security.get_current_user": mock_get_current_admin_dep,
     }
+
+    app.include_router(admin_router, prefix="/api/admin")
     return app
 
 
