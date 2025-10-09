@@ -48,30 +48,38 @@ def setup_logging():
         diagnose=True
     )
 
-    # Add error file handler
-    logger.add(
-        "logs/error.log",
-        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | {extra[request_id]} | {name}:{function}:{line} | {message}",
-        level="ERROR",
-        rotation="10 MB",
-        retention="1 week",
-        encoding="utf-8",
-        enqueue=False,  # Disable async logging for serverless compatibility
-        backtrace=True,
-        diagnose=True
-    )
+    # Check if we can write to file system (not serverless)
+    try:
+        os.makedirs("logs", exist_ok=True)
+        can_write_files = True
+    except OSError:
+        can_write_files = False
 
-    # Add access log handler
-    logger.add(
-        "logs/access.log",
-        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | ACCESS | {extra[request_id]} | {message}",
-        level="INFO",
-        rotation="10 MB",
-        retention="1 week",
-        encoding="utf-8",
-        enqueue=False,  # Disable async logging for serverless compatibility
-        filter=lambda record: record["extra"].get("access", False)
-    )
+    if can_write_files:
+        # Add error file handler
+        logger.add(
+            "logs/error.log",
+            format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | {extra[request_id]} | {name}:{function}:{line} | {message}",
+            level="ERROR",
+            rotation="10 MB",
+            retention="1 week",
+            encoding="utf-8",
+            enqueue=False,  # Disable async logging for serverless compatibility
+            backtrace=True,
+            diagnose=True
+        )
+
+        # Add access log handler
+        logger.add(
+            "logs/access.log",
+            format="{time:YYYY-MM-DD HH:mm:ss.SSS} | ACCESS | {extra[request_id]} | {message}",
+            level="INFO",
+            rotation="10 MB",
+            retention="1 week",
+            encoding="utf-8",
+            enqueue=False,  # Disable async logging for serverless compatibility
+            filter=lambda record: record["extra"].get("access", False)
+        )
 
     return logger
 
@@ -81,7 +89,3 @@ app_logger = setup_logging()
 def get_logger(name: str):
     """Get a logger instance with the given name."""
     return app_logger.bind(request_id=get_request_id())
-
-# Create logs directory if it doesn't exist
-import os
-os.makedirs("logs", exist_ok=True)
