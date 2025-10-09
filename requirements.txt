@@ -16,3 +16,4 @@ PyYAML==6.0.3
 fastapi-cache2==0.2.1
 PyJWT==2.10.1
 loguru==0.7.0
+cachetools==5.5.0
