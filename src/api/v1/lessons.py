@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body
 import fastapi.responses
 
 from src.core.config import settings
+from src.core.errors import ContentFileNotFoundError, SecurityError
 from src.core.security import get_current_user, get_current_admin
 from src.core.utils import finalize_supabase_result
 from src.dependencies import get_fs_service, get_ulf_parser, get_content_scanner, validate_content_size
@@ -88,10 +89,14 @@ async def get_lesson_raw(slug: str, current_admin: User = Depends(get_current_ad
         return await fs_service.read_file(relative_path)
     except FileNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found") from None
+    except ContentFileNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except SecurityError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
 
 
 @router.put("/{slug}/raw")
-async def update_lesson_raw(slug: str, content: str = Body(..., media_type="text/plain"), current_admin: User = Depends(get_current_admin), fs_service: FileSystemService = Depends(get_fs_service), ulf_service: ULFParserService = Depends(get_ulf_parser), cs_service: ContentScannerService = Depends(get_content_scanner)) -> dict:
+async def update_lesson_raw(slug: str, content: str = Body("", media_type="text/plain"), current_admin: User = Depends(get_current_admin), fs_service: FileSystemService = Depends(get_fs_service), ulf_service: ULFParserService = Depends(get_ulf_parser), cs_service: ContentScannerService = Depends(get_content_scanner)) -> dict:
     del current_admin
 
     # Validate content size
@@ -115,6 +120,16 @@ async def update_lesson_raw(slug: str, content: str = Body(..., media_type="text
     # Overwrite the file
     try:
         await fs_service.write_file(relative_path, content)
+    except ContentFileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except SecurityError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -169,4 +184,3 @@ async def complete_lesson(lesson_id: str, current_user: User = Depends(get_curre
         new_percent = rpc_data.get("progress_percent", 0)
 
     return LessonCompleteResponse(new_course_progress_percent=int(new_percent))
-

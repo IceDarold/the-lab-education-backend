@@ -1,18 +1,21 @@
 import pytest
-from fastapi.testclient import TestClient
 from fastapi import FastAPI
-from unittest.mock import AsyncMock, MagicMock
+from fastapi.testclient import TestClient
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from src.dependencies import get_current_user, get_db
 from src.routers.analytics_router import router as analytics_router
 from src.schemas.analytics import TrackEventRequest
-from src.schemas import ActivityDetailsResponse, DailyActivity
 
 
 @pytest.fixture
 def mock_analytics_service():
     """Mock AnalyticsService."""
-    service = MagicMock()
-    service.track_activity = AsyncMock()
-    service.get_activity_details = AsyncMock()
+    service = SimpleNamespace(
+        track_activity=AsyncMock(),
+        get_activity_details=AsyncMock(),
+    )
     return service
 
 
@@ -27,7 +30,7 @@ def mock_get_current_user():
 @pytest.fixture
 def mock_get_db():
     """Mock get_db dependency."""
-    return AsyncMock()
+    return MagicMock()
 
 
 @pytest.fixture
@@ -36,20 +39,24 @@ def test_app(mock_analytics_service, mock_get_current_user, mock_get_db):
     app = FastAPI()
     app.include_router(analytics_router)
 
-    # Override dependencies
-    app.dependency_overrides = {
-        "src.dependencies.get_db": lambda: mock_get_db,
-        "src.dependencies.get_current_user": lambda: mock_get_current_user,
-        "src.services.analytics_service.AnalyticsService.track_activity": mock_analytics_service.track_activity,
-        "src.services.analytics_service.AnalyticsService.get_activity_details": mock_analytics_service.get_activity_details,
-    }
-    return app
+    async def override_get_db():
+        yield mock_get_db
+
+    async def override_get_current_user_dep():
+        return mock_get_current_user
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user_dep
+
+    with patch("src.services.analytics_service.AnalyticsService.track_activity", new=mock_analytics_service.track_activity), \
+         patch("src.services.analytics_service.AnalyticsService.get_activity_details", new=mock_analytics_service.get_activity_details):
+        yield app
 
 
 @pytest.fixture
 def client(test_app):
     """Test client."""
-    return TestClient(test_app)
+    return TestClient(test_app, raise_server_exceptions=False)
 
 
 class TestAnalyticsRouter:
@@ -63,8 +70,8 @@ class TestAnalyticsRouter:
         response = client.post("/activity-log", json=request_data)
 
         assert response.status_code == 202
-        # Should not return content, just 202 Accepted
-        assert response.content == b""
+        # Background tasks return JSON null
+        assert response.json() is None
         mock_analytics_service.track_activity.assert_called_once_with(
             user_id=mock_get_current_user.id,
             event_data=TrackEventRequest(**request_data),
