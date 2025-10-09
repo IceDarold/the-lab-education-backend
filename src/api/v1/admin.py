@@ -6,8 +6,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from fastapi.responses import PlainTextResponse, Response
 
 from src.core.errors import ContentFileNotFoundError, SecurityError
-from src.core.security import get_current_admin
-from src.dependencies import get_content_scanner, get_fs_service, validate_safe_path
+from src.dependencies import get_content_scanner, get_fs_service, validate_safe_path, require_current_admin
 from src.schemas.api import CreateCourseRequest, CreateLessonRequest, CreateModuleRequest
 from src.schemas.content_node import ContentNode
 from src.schemas.user import User
@@ -18,7 +17,7 @@ router = APIRouter()
 
 
 @router.get("/content-tree", response_model=List[ContentNode])
-async def get_content_tree(current_user: User = Depends(get_current_admin), cs_service: ContentScannerService = Depends(get_content_scanner)):
+async def get_content_tree(current_user: User = Depends(require_current_admin), cs_service: ContentScannerService = Depends(get_content_scanner)):
     try:
         return await cs_service.build_content_tree()
     except Exception as exc:
@@ -28,7 +27,7 @@ async def get_content_tree(current_user: User = Depends(get_current_admin), cs_s
 @router.get("/config-file", response_class=PlainTextResponse)
 async def get_config_file(
     path: str = Query(..., description="Path to the config file"),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_current_admin),
     fs_service: FileSystemService = Depends(get_fs_service)
 ):
     # Validate path for security
@@ -47,7 +46,7 @@ async def get_config_file(
 async def update_config_file(
     path: str = Query(..., description="Path to the config file"),
     content: str = Body(..., media_type="text/plain"),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_current_admin),
     fs_service: FileSystemService = Depends(get_fs_service),
     cs_service: ContentScannerService = Depends(get_content_scanner)
 ):
@@ -66,7 +65,7 @@ async def update_config_file(
 async def create_item(
     item_type: Literal["course", "module", "lesson"],
     request_body: dict = Body(...),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_current_admin),
     fs_service: FileSystemService = Depends(get_fs_service),
     cs_service: ContentScannerService = Depends(get_content_scanner)
 ):
@@ -146,7 +145,7 @@ async def create_item(
 @router.delete("/item", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(
     path: str = Query(..., description="Path to the item to delete"),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_current_admin),
     fs_service: FileSystemService = Depends(get_fs_service),
     cs_service: ContentScannerService = Depends(get_content_scanner)
 ):

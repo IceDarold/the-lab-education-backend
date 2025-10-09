@@ -4,8 +4,9 @@ from httpx import ASGITransport, AsyncClient
 from fastapi import FastAPI
 from unittest.mock import AsyncMock, MagicMock
 from datetime import datetime
+from uuid import uuid4
 
-from src.dependencies import get_db, get_current_admin, get_content_scanner
+from src.dependencies import get_db, require_current_admin, get_content_scanner
 from src.routers.admin.users_router import (
     get_analytics_service,
     get_progress_service,
@@ -55,7 +56,7 @@ def mock_content_scanner():
 def mock_get_current_admin():
     """Mock get_current_admin dependency."""
     admin = MagicMock()
-    admin.id = 1
+    admin.id = uuid4()
     admin.role = "admin"
     return admin
 
@@ -75,7 +76,7 @@ def test_app(mock_user_service, mock_progress_service, mock_analytics_service, m
 
     # Override dependencies
     app.dependency_overrides[get_db] = lambda: mock_db
-    app.dependency_overrides[get_current_admin] = lambda: mock_get_current_admin
+    app.dependency_overrides[require_current_admin] = lambda: mock_get_current_admin
     app.dependency_overrides[get_user_service] = lambda: mock_user_service
     app.dependency_overrides[get_progress_service] = lambda: mock_progress_service
     app.dependency_overrides[get_analytics_service] = lambda: mock_analytics_service
@@ -96,8 +97,8 @@ class TestListUsers:
         """Test successful user listing without filters."""
         # Mock users
         mock_users = [
-            User(id=1, full_name="John Doe", email="john@example.com", role="STUDENT", status="ACTIVE", registration_date=datetime.now()),
-            User(id=2, full_name="Jane Smith", email="jane@example.com", role="ADMIN", status="ACTIVE", registration_date=datetime.now()),
+            User(id=uuid4(), full_name="John Doe", email="john@example.com", role="STUDENT", status="ACTIVE", registration_date=datetime.now()),
+            User(id=uuid4(), full_name="Jane Smith", email="jane@example.com", role="ADMIN", status="ACTIVE", registration_date=datetime.now()),
         ]
         mock_user_service.list_users.return_value = mock_users
 
@@ -115,13 +116,13 @@ class TestListUsers:
         assert data["total_items"] == 2
         assert data["total_pages"] == 1
         assert data["current_page"] == 1
-        assert data["page_size"] == 10
+        assert data["page_size"] == 100
         mock_user_service.list_users.assert_called_once_with(db=mock_db, filters=UserFilter())
 
     async def test_list_users_success_with_filters(self, client, mock_user_service, mock_db):
         """Test successful user listing with filters."""
         mock_users = [
-            User(id=1, full_name="John Doe", email="john@example.com", role="STUDENT", status="ACTIVE", registration_date=datetime.now()),
+            User(id=uuid4(), full_name="John Doe", email="john@example.com", role="STUDENT", status="ACTIVE", registration_date=datetime.now()),
         ]
         mock_user_service.list_users.return_value = mock_users
 
@@ -143,7 +144,7 @@ class TestListUsers:
     async def test_list_users_success_pagination(self, client, mock_user_service, mock_db):
         """Test user listing with pagination."""
         mock_users = [
-            User(id=2, full_name="Jane Smith", email="jane@example.com", role="ADMIN", status="ACTIVE", registration_date=datetime.now()),
+            User(id=uuid4(), full_name="Jane Smith", email="jane@example.com", role="ADMIN", status="ACTIVE", registration_date=datetime.now()),
         ]
         mock_user_service.list_users.return_value = mock_users
 
@@ -173,13 +174,15 @@ class TestGetUserDetails:
     async def test_get_user_details_success(self, client, mock_db, mock_progress_service, mock_analytics_service):
         """Test successful user details retrieval."""
         # Mock user
-        mock_user = User(id=1, full_name="John Doe", email="john@example.com", role="STUDENT", status="ACTIVE", registration_date=datetime.now())
-        mock_db.execute.return_value.scalar_one_or_none.return_value = mock_user
+        user_id = uuid4()
+        mock_user = User(id=user_id, full_name="John Doe", email="john@example.com", role="STUDENT", status="ACTIVE", registration_date=datetime.now())
+        user_result = MagicMock()
+        user_result.scalar_one_or_none.return_value = mock_user
 
         # Mock enrollments
         mock_enrollment_result = MagicMock()
         mock_enrollment_result.__iter__ = lambda self: iter([MagicMock(course_slug="course1"), MagicMock(course_slug="course2")])
-        mock_db.execute.return_value = mock_enrollment_result
+        mock_db.execute.side_effect = [user_result, mock_enrollment_result]
 
         # Mock progress
         mock_progress_service.get_user_progress_for_course.return_value = {"completed": 5, "total": 10}
@@ -187,7 +190,7 @@ class TestGetUserDetails:
         # Mock activity
         mock_analytics_service.get_activity_details.return_value = [{"date": "2023-10-01", "LOGIN": 2}]
 
-        response = await client.get("/api/admin/users/1/details")
+        response = await client.get(f"/api/admin/users/{user_id}/details")
 
         assert response.status_code == 200
         data = response.json()
@@ -196,43 +199,50 @@ class TestGetUserDetails:
         assert "progress" in data
         assert data["progress"]["course1"] == {"completed": 5, "total": 10}
         assert data["progress"]["course2"] == {"completed": 5, "total": 10}
-        mock_analytics_service.get_activity_details.assert_called_once_with(user_id=1, db=mock_db)
+        mock_analytics_service.get_activity_details.assert_called_once_with(user_id=user_id, db=mock_db)
 
     async def test_get_user_details_user_not_found(self, client, mock_db):
         """Test user details when user not found."""
-        mock_db.execute.return_value.scalar_one_or_none.return_value = None
+        user_result = MagicMock()
+        user_result.scalar_one_or_none.return_value = None
+        mock_db.execute.return_value = user_result
 
-        response = await client.get("/api/admin/users/999/details")
+        missing_user_id = uuid4()
+        response = await client.get(f"/api/admin/users/{missing_user_id}/details")
 
         assert response.status_code == 404
         assert "User not found" in response.json()["detail"]
 
     async def test_get_user_details_progress_service_error(self, client, mock_db, mock_progress_service, mock_analytics_service):
         """Test user details with progress service error."""
-        mock_user = User(id=1, full_name="John Doe", email="john@example.com", role="STUDENT", status="ACTIVE", registration_date=datetime.now())
-        mock_db.execute.return_value.scalar_one_or_none.return_value = mock_user
+        user_id = uuid4()
+        mock_user = User(id=user_id, full_name="John Doe", email="john@example.com", role="STUDENT", status="ACTIVE", registration_date=datetime.now())
+        user_result = MagicMock()
+        user_result.scalar_one_or_none.return_value = mock_user
 
         mock_enrollment_result = MagicMock()
         mock_enrollment_result.__iter__ = lambda self: iter([MagicMock(course_slug="course1")])
-        mock_db.execute.return_value = mock_enrollment_result
+        mock_db.execute.side_effect = [user_result, mock_enrollment_result]
 
         mock_progress_service.get_user_progress_for_course.side_effect = Exception("Progress error")
 
-        response = await client.get("/api/admin/users/1/details")
+        response = await client.get(f"/api/admin/users/{user_id}/details")
 
         assert response.status_code == 500
 
     async def test_get_user_details_analytics_service_error(self, client, mock_db, mock_progress_service, mock_analytics_service):
         """Test user details with analytics service error."""
-        mock_user = User(id=1, full_name="John Doe", email="john@example.com", role="STUDENT", status="ACTIVE", registration_date=datetime.now())
-        mock_db.execute.return_value.scalar_one_or_none.return_value = mock_user
+        user_id = uuid4()
+        mock_user = User(id=user_id, full_name="John Doe", email="john@example.com", role="STUDENT", status="ACTIVE", registration_date=datetime.now())
+        user_result = MagicMock()
+        user_result.scalar_one_or_none.return_value = mock_user
 
         mock_enrollment_result = MagicMock()
         mock_enrollment_result.__iter__ = lambda self: iter([])
-        mock_db.execute.return_value = mock_enrollment_result
+        mock_db.execute.side_effect = [user_result, mock_enrollment_result]
 
         mock_analytics_service.get_activity_details.side_effect = Exception("Analytics error")
 
-        response = await client.get("/api/admin/users/1/details")
+        response = await client.get(f"/api/admin/users/{user_id}/details")
 
         assert response.status_code == 500

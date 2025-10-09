@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.dependencies import get_current_user, get_db
+from src.dependencies import require_current_user, get_db
 from src.routers.analytics_router import router as analytics_router
 from src.schemas.analytics import TrackEventRequest
 
@@ -23,7 +23,7 @@ def mock_analytics_service():
 def mock_get_current_user():
     """Mock get_current_user dependency."""
     user = MagicMock()
-    user.id = "test-user-id"
+    user.user_id = "test-user-id"
     return user
 
 
@@ -46,7 +46,7 @@ def test_app(mock_analytics_service, mock_get_current_user, mock_get_db):
         return mock_get_current_user
 
     app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[get_current_user] = override_get_current_user_dep
+    app.dependency_overrides[require_current_user] = override_get_current_user_dep
 
     with patch("src.services.analytics_service.AnalyticsService.track_activity", new=mock_analytics_service.track_activity), \
          patch("src.services.analytics_service.AnalyticsService.get_activity_details", new=mock_analytics_service.get_activity_details):
@@ -72,10 +72,10 @@ class TestAnalyticsRouter:
         assert response.status_code == 202
         # Background tasks return JSON null
         assert response.json() is None
-        mock_analytics_service.track_activity.assert_called_once_with(
-            user_id=mock_get_current_user.id,
+        mock_analytics_service.track_activity.assert_awaited_once_with(
+            user_id=mock_get_current_user.user_id,
             event_data=TrackEventRequest(**request_data),
-            db=mock_get_db
+            db=mock_get_db,
         )
 
     def test_track_user_activity_minimal_data(self, client, mock_analytics_service, mock_get_current_user, mock_get_db):
@@ -87,10 +87,10 @@ class TestAnalyticsRouter:
         response = client.post("/activity-log", json=request_data)
 
         assert response.status_code == 202
-        mock_analytics_service.track_activity.assert_called_once_with(
-            user_id=mock_get_current_user.id,
+        mock_analytics_service.track_activity.assert_awaited_once_with(
+            user_id=mock_get_current_user.user_id,
             event_data=TrackEventRequest(activity_type="LOGIN", details=None),
-            db=mock_get_db
+            db=mock_get_db,
         )
 
     def test_track_user_activity_invalid_data(self, client):
@@ -120,8 +120,9 @@ class TestAnalyticsRouter:
         assert data["activities"][0]["date"] == "2023-10-01"
         assert data["activities"][0]["LOGIN"] == 2
         assert data["activities"][0]["LESSON_COMPLETED"] == 1
-        mock_analytics_service.get_activity_details.assert_called_once_with(
-            mock_get_current_user.id, mock_get_db
+        mock_analytics_service.get_activity_details.assert_awaited_once_with(
+            mock_get_current_user.user_id,
+            mock_get_db,
         )
 
     def test_get_user_activity_details_empty(self, client, mock_analytics_service, mock_get_current_user, mock_get_db):
@@ -133,8 +134,9 @@ class TestAnalyticsRouter:
         assert response.status_code == 200
         data = response.json()
         assert data["activities"] == []
-        mock_analytics_service.get_activity_details.assert_called_once_with(
-            mock_get_current_user.id, mock_get_db
+        mock_analytics_service.get_activity_details.assert_awaited_once_with(
+            mock_get_current_user.user_id,
+            mock_get_db,
         )
 
     def test_get_user_activity_details_service_error(self, client, mock_analytics_service):

@@ -5,8 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 from src.api.v1.admin import router as admin_router
-from src.core.security import get_current_admin
-from src.dependencies import get_content_scanner, get_fs_service
+from src.dependencies import get_content_scanner, get_fs_service, require_current_admin
 from src.schemas.content_node import ContentNode
 from src.schemas.user import User
 
@@ -62,7 +61,7 @@ def test_app(mock_fs_service, mock_content_scanner, mock_get_current_admin):
 
     app.dependency_overrides[get_fs_service] = override_fs_service
     app.dependency_overrides[get_content_scanner] = override_content_scanner
-    app.dependency_overrides[get_current_admin] = mock_get_current_admin_dep
+    app.dependency_overrides[require_current_admin] = mock_get_current_admin_dep
 
     app.include_router(admin_router, prefix="/api/admin")
     return app

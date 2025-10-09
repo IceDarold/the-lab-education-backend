@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from uuid import UUID
 from src.models.user_activity_log import ActivityTypeEnum
 import re
 
@@ -19,7 +20,9 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
     full_name: str = Field(..., max_length=100)
     email: str = Field(..., max_length=254)
     role: str

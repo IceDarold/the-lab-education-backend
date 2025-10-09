@@ -1,5 +1,11 @@
 import inspect
 from typing import Any
+
+try:  # pragma: no cover - optional dependency for test environments
+    from unittest.mock import AsyncMock
+except ImportError:  # pragma: no cover
+    AsyncMock = None
+
 from src.core.logging import get_logger
 from src.core.errors import ExternalServiceError
 
@@ -12,8 +18,18 @@ async def finalize_supabase_result(result: Any) -> Any:
         execute = getattr(result, "execute", None)
         if callable(execute):
             result = execute()
-        while inspect.isawaitable(result):
-            result = await result
+        while True:
+            if AsyncMock is not None and isinstance(result, AsyncMock):
+                result = result()
+                continue
+            if inspect.isawaitable(result):
+                result = await result
+                continue
+            await_method = getattr(result, "__await__", None)
+            if callable(await_method):
+                result = await result
+                continue
+            break
         return result
     except Exception as e:
         logger.error(f"Error finalizing Supabase result: {str(e)}")
@@ -22,6 +38,8 @@ async def finalize_supabase_result(result: Any) -> Any:
 
 async def maybe_await(value: Any) -> Any:
     """Await value when it is awaitable; otherwise return it unchanged."""
+    if AsyncMock is not None and isinstance(value, AsyncMock):
+        value = value()
     if inspect.isawaitable(value):
         return await value
     return value

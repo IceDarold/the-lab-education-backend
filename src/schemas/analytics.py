@@ -1,10 +1,10 @@
-from typing import Optional
+from typing import Optional, Literal
 
 from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 
 class TrackEventRequest(BaseModel):
-    activity_type: str = Field(..., min_length=1, max_length=50)
+    activity_type: Literal["LOGIN", "LESSON_COMPLETED", "QUIZ_ATTEMPT", "CODE_EXECUTION"]
     details: Optional[dict] = None
 
 

@@ -92,7 +92,7 @@ async def test_get_me_success(monkeypatch):
     data = response.json()
     assert data.get("user_id") == user_id
     assert data.get("email") == "user@example.com"
-    assert data.get("full_name") == ""
+    assert data.get("full_name") == "user"
 
 
 @pytest.mark.asyncio

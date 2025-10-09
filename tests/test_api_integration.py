@@ -1,16 +1,24 @@
 import pytest
 from fastapi.testclient import TestClient
 from fastapi import FastAPI
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+from pathlib import Path
+from uuid import uuid4
 from src.main import app  # Import the real app
 from src.schemas.content_node import ContentNode
 from src.dependencies import (
     get_fs_service,
     get_content_scanner,
     get_ulf_parser,
-    get_current_user,
+    require_current_user,
+    require_current_admin,
+    get_db,
 )
-from src.core.security import get_current_admin
+from src.core.config import settings
+
+
+async def _fake_db_session():
+    yield AsyncMock()
 
 
 @pytest.fixture
@@ -32,7 +40,7 @@ def mock_content_scanner(mock_fs_service):
     """Mock ContentScannerService for integration tests."""
     service = MagicMock()
     service.build_content_tree = AsyncMock(return_value=[])
-    service.clear_cache = AsyncMock()
+    service.clear_cache = MagicMock()
     return service
 
 
@@ -68,8 +76,8 @@ def integration_app(mock_fs_service, mock_content_scanner, mock_ulf_parser, mock
     test_app.dependency_overrides[get_fs_service] = lambda: mock_fs_service
     test_app.dependency_overrides[get_content_scanner] = lambda: mock_content_scanner
     test_app.dependency_overrides[get_ulf_parser] = lambda: mock_ulf_parser
-    test_app.dependency_overrides[get_current_admin] = lambda: mock_get_current_admin
-    test_app.dependency_overrides[get_current_user] = lambda: mock_get_current_admin
+    test_app.dependency_overrides[require_current_admin] = lambda: mock_get_current_admin
+    test_app.dependency_overrides[require_current_user] = lambda: mock_get_current_admin
     return test_app
 
 
@@ -91,9 +99,9 @@ class TestAPIIntegration:
         assert response.status_code == 201
 
         # Verify service calls
-        mock_fs_service.createDirectory.assert_called_with("integration-course")
-        mock_fs_service.writeFile.assert_called_with(
-            "integration-course/_course.yml",
+        mock_fs_service.create_directory.assert_called_with("courses/integration-course")
+        mock_fs_service.write_file.assert_called_with(
+            "courses/integration-course/_course.yml",
             "title: Integration Test Course\n"
         )
         mock_content_scanner.clear_cache.assert_called()
@@ -115,25 +123,28 @@ class TestAPIIntegration:
         """Test lesson update with validation."""
         lesson_content = '---\ntitle: Updated Lesson\n---\n\nNew content'
 
-        response = client.put(
-            "/api/lessons/test-lesson/raw",
-            data=lesson_content,
-            headers={"Content-Type": "text/plain"}
-        )
+        with patch("src.api.v1.lessons._find_lesson_file") as mock_find_lesson:
+            mock_find_lesson.return_value = Path(settings.CONTENT_ROOT) / "courses" / "course" / "test-lesson.lesson"
+
+            response = client.put(
+                "/api/lessons/test-lesson/raw",
+                data=lesson_content,
+                headers={"Content-Type": "text/plain"}
+            )
 
         assert response.status_code == 200
 
         # Verify parsing was called
         mock_ulf_parser.parse.assert_called_with(lesson_content)
         # Verify file was written
-        mock_fs_service.writeFile.assert_called_with("test-lesson.lesson", lesson_content)
+        mock_fs_service.write_file.assert_called_with("courses/course/test-lesson.lesson", lesson_content)
         # Verify cache was cleared
         mock_content_scanner.clear_cache.assert_called()
 
     def test_error_handling_integration(self, client, mock_fs_service):
         """Test error handling across the API."""
         from src.core.errors import ContentFileNotFoundError
-        mock_fs_service.readFile.side_effect = ContentFileNotFoundError("File not found")
+        mock_fs_service.read_file.side_effect = ContentFileNotFoundError("File not found")
 
         # Test admin config file
         response = client.get("/api/admin/config-file?path=missing.yml")
@@ -146,7 +157,7 @@ class TestAPIIntegration:
     def test_security_integration(self, client, mock_fs_service):
         """Test security validation integration."""
         from src.core.errors import SecurityError
-        mock_fs_service.readFile.side_effect = SecurityError("Access denied")
+        mock_fs_service.read_file.side_effect = SecurityError("Access denied")
 
         response = client.get("/api/admin/config-file?path=../../../etc/passwd")
         assert response.status_code == 403
@@ -170,7 +181,7 @@ class TestAPIIntegration:
         })
 
         # Read config
-        mock_fs_service.readFile.return_value = "title: CRUD Course\n"
+        mock_fs_service.read_file.return_value = "title: CRUD Course\n"
         response = client.get("/api/admin/config-file?path=crud-course/_course.yml")
         assert response.status_code == 200
 
@@ -192,27 +203,26 @@ class TestAPIIntegration:
         """Test successful activity tracking returns 202."""
         # Mock authenticated user
         from unittest.mock import patch
-        with patch('src.dependencies.get_current_user') as mock_get_user:
-            mock_user = MagicMock()
-            mock_user.id = 1
-            mock_get_user.return_value = mock_user
+        from src.routers.analytics_router import router as analytics_router
+        client.app.include_router(analytics_router, prefix="/api")
 
-            # Mock database session
-            with patch('src.dependencies.get_db') as mock_get_db:
-                mock_db = AsyncMock()
-                mock_get_db.return_value = mock_db
+        mock_user = MagicMock()
+        mock_user.user_id = uuid4()
 
-                # Include analytics router in test app
-                from src.routers.analytics_router import router as analytics_router
-                client.app.include_router(analytics_router, prefix="/api")
+        client.app.dependency_overrides[require_current_user] = lambda: mock_user
+        client.app.dependency_overrides[get_db] = _fake_db_session
 
-                # Test successful tracking
-                response = client.post("/api/activity-log", json={
-                    "activity_type": "LESSON_COMPLETED",
-                    "details": {"lesson_slug": "test-lesson", "course_slug": "test-course"}
-                })
+        with patch("src.services.analytics_service.AnalyticsService.track_activity") as mock_track:
+            mock_track.return_value = None
+            response = client.post("/api/activity-log", json={
+                "activity_type": "LESSON_COMPLETED",
+                "details": {"lesson_slug": "test-lesson", "course_slug": "test-course"}
+            })
 
-                assert response.status_code == 202
+        client.app.dependency_overrides.pop(require_current_user, None)
+        client.app.dependency_overrides.pop(get_db, None)
+
+        assert response.status_code == 202
                 # Verify background task would be called (can't easily test background tasks in TestClient)
 
     def test_track_activity_unauthenticated(self, client):
@@ -221,30 +231,39 @@ class TestAPIIntegration:
         from src.routers.analytics_router import router as analytics_router
         client.app.include_router(analytics_router, prefix="/api")
 
+        original_user_override = client.app.dependency_overrides.pop(require_current_user, None)
+        original_db_override = client.app.dependency_overrides.pop(get_db, None)
+
         response = client.post("/api/activity-log", json={
             "activity_type": "LOGIN"
         })
 
         assert response.status_code == 401
 
+        if original_user_override is not None:
+            client.app.dependency_overrides[require_current_user] = original_user_override
+        if original_db_override is not None:
+            client.app.dependency_overrides[get_db] = original_db_override
+
     def test_track_activity_invalid_data(self, client):
         """Test activity tracking with invalid data returns 422."""
         # Mock authenticated user
         from unittest.mock import patch
-        with patch('src.dependencies.get_current_user') as mock_get_user:
-            mock_user = MagicMock()
-            mock_user.id = 1
-            mock_get_user.return_value = mock_user
+        from src.routers.analytics_router import router as analytics_router
+        client.app.include_router(analytics_router, prefix="/api")
 
-            # Include analytics router
-            from src.routers.analytics_router import router as analytics_router
-            client.app.include_router(analytics_router, prefix="/api")
+        mock_user = MagicMock()
+        mock_user.user_id = uuid4()
 
-            # Test invalid activity_type
-            response = client.post("/api/activity-log", json={
-                "activity_type": "INVALID_TYPE",
-                "details": {"key": "value"}
-            })
+        client.app.dependency_overrides[require_current_user] = lambda: mock_user
+        client.app.dependency_overrides[get_db] = _fake_db_session
 
-            assert response.status_code == 422
-        assert mock_content_scanner.clear_cache.call_count == 3
+        response = client.post("/api/activity-log", json={
+            "activity_type": "INVALID_TYPE",
+            "details": {"key": "value"}
+        })
+
+        client.app.dependency_overrides.pop(require_current_user, None)
+        client.app.dependency_overrides.pop(get_db, None)
+
+        assert response.status_code == 422

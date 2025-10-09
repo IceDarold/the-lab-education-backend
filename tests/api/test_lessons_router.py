@@ -5,8 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.api.v1 import lessons as lessons_module
 from src.api.v1.lessons import router as lessons_router
-from src.dependencies import get_content_scanner, get_fs_service, get_ulf_parser
-from src.core.security import get_current_admin
+from src.dependencies import get_content_scanner, get_fs_service, get_ulf_parser, require_current_admin
 from src.core.config import settings
 from pathlib import Path
 
@@ -52,7 +51,7 @@ def test_app(mock_fs_service, mock_ulf_parser, mock_content_scanner, mock_get_cu
     app.dependency_overrides[get_fs_service] = lambda: mock_fs_service
     app.dependency_overrides[get_ulf_parser] = lambda: mock_ulf_parser
     app.dependency_overrides[get_content_scanner] = lambda: mock_content_scanner
-    app.dependency_overrides[get_current_admin] = lambda: mock_get_current_admin
+    app.dependency_overrides[require_current_admin] = lambda: mock_get_current_admin
     return app
 
 

@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 from email_validator import validate_email, EmailNotValidError
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 class UserCreate(BaseModel):
@@ -92,7 +92,9 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
     full_name: str = Field(..., min_length=1, max_length=100)
     email: str = Field(..., max_length=254)
     role: str = "student"
@@ -122,7 +124,7 @@ class UserFilter(BaseModel):
     search: Optional[str] = Field(None, max_length=100)
     role: Optional[str] = None
     status: Optional[str] = None
-    sort_by: str = "id"
-    sort_order: str = "asc"
+    sort_by: str = "registration_date"
+    sort_order: str = "desc"
     skip: int = 0
-    limit: int = 10
+    limit: int = 100

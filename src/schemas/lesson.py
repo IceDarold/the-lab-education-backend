@@ -2,18 +2,26 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 import re
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, computed_field, ConfigDict
 
 
 class LessonCell(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     type: str = Field(..., min_length=1, max_length=50)
     content: str
     config: Dict[str, Any] = Field(default_factory=dict)
 
+    @computed_field
     @property
     def cell_type(self) -> str:
         """Backward compatible accessor for the cell type."""
         return self.type
+
+    @property
+    def metadata(self) -> Dict[str, Any]:
+        """Backward compatible alias for config payload."""
+        return self.config
 
 
 class Lesson(BaseModel):
@@ -23,6 +31,8 @@ class Lesson(BaseModel):
 
 
 class LessonContent(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     slug: str = Field(..., min_length=1, max_length=100)
     title: str = Field(..., min_length=1, max_length=200)
     course_slug: Optional[str] = Field(None, min_length=1, max_length=100)

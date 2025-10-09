@@ -103,11 +103,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     except ValueError:
         raise ValidationError(f"Invalid user ID format: {user_id}")
 
+    full_name = payload.get("full_name") or (email.split("@")[0] if email else "User")
+    role = payload.get("role") or "student"
+
     return User(
         user_id=user_uuid,
-        full_name="",  # Would fetch from DB
+        full_name=full_name,
         email=email,
-        role="student",  # Would fetch from DB
+        role=role,
     )
 
 

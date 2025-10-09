@@ -4,6 +4,7 @@ from src.services.file_system_service import FileSystemService
 from src.services.content_scanner_service import ContentScannerService
 from src.services.ulf_parser_service import ULFParserService
 from src.core.security import get_current_user, get_current_admin
+from src.schemas.user import User
 
 
 def get_fs_service() -> FileSystemService:
@@ -16,6 +17,16 @@ def get_content_scanner(fs: FileSystemService = Depends(get_fs_service)) -> Cont
 
 def get_ulf_parser() -> ULFParserService:
     return ULFParserService()
+
+
+def require_current_user(current_user: User = Depends(get_current_user)) -> User:
+    """Dependency wrapper for retrieving the current authenticated user."""
+    return current_user
+
+
+def require_current_admin(current_admin: User = Depends(get_current_admin)) -> User:
+    """Dependency wrapper for retrieving the current authenticated admin."""
+    return current_admin
 
 
 def validate_content_size(content: str, max_size_mb: int = 10) -> str:

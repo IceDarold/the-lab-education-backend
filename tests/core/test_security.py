@@ -179,7 +179,7 @@ class TestGetCurrentUser:
             user = await get_current_user("valid-token")
 
             assert isinstance(user, User)
-            assert user.user_id == sample_user_data["sub"]
+            assert str(user.user_id) == sample_user_data["sub"]
             assert user.email == sample_user_data["email"]
             assert user.role == "student"  # Default role
 

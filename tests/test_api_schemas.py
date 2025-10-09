@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 from datetime import datetime
-from uuid import uuid4
+from uuid import uuid4, UUID
 from src.schemas.api import CreateCourseRequest, CreateModuleRequest, CreateLessonRequest
 from src.schemas import UserCreate, UserUpdate, UserResponse, LessonCompleteRequest, UsersListResponse, UserFilter, DailyActivity, ActivityDetailsResponse
 from src.schemas.user import User, CheckEmailRequest, ForgotPasswordRequest, ResetPasswordRequest
@@ -219,15 +219,16 @@ class TestUserUpdate:
 class TestUserResponse:
     def test_valid_response(self):
         """Test successful serialization."""
+        user_id = uuid4()
         response = UserResponse(
-            id=1,
+            id=user_id,
             full_name="John Doe",
             email="john@example.com",
             role="student",
             status="active",
             registration_date=datetime(2023, 1, 1, 12, 0, 0)
         )
-        assert response.id == 1
+        assert response.id == user_id
         assert response.full_name == "John Doe"
         assert response.email == "john@example.com"
         assert response.role == "student"
@@ -238,7 +239,7 @@ class TestUserResponse:
         """Test validation error when required fields are missing."""
         with pytest.raises(ValidationError) as exc_info:
             UserResponse(
-                id=1,
+                id=uuid4(),
                 email="john@example.com",
                 role="student",
                 status="active",
@@ -275,8 +276,9 @@ class TestLessonCompleteRequest:
 class TestUsersListResponse:
     def test_valid_response(self):
         """Test successful creation with valid pagination fields."""
+        user_id = uuid4()
         user = UserResponse(
-            id=1,
+            id=user_id,
             full_name="John Doe",
             email="john@example.com",
             role="student",
