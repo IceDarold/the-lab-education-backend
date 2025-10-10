@@ -195,35 +195,48 @@ jobs:
     needs: deploy-production
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Check database URL
+      id: db_url_check
+      run: |
+        if [ -z "${DATABASE_URL}" ]; then
+          echo "DATABASE_URL secret is missing; skipping migrations."
+          echo "should_migrate=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "should_migrate=true" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
+      if: steps.db_url_check.outputs.should_migrate == 'true'
 
     - name: Install Poetry
       run: |
         curl -sSL https://install.python-poetry.org | python3 -
         echo "$HOME/.local/bin" >> $GITHUB_PATH
+      if: steps.db_url_check.outputs.should_migrate == 'true'
 
     - name: Install dependencies
       run: |
         poetry install
+      if: steps.db_url_check.outputs.should_migrate == 'true'
 
     - name: Run database migrations
       run: |
         echo "Applying database migrations..."
         poetry run alembic upgrade head
         echo "Migrations applied successfully"
-      env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      if: steps.db_url_check.outputs.should_migrate == 'true'
 
     - name: Verify migration success
       run: |
         poetry run alembic current
         echo "Migration verification completed"
-      env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      if: steps.db_url_check.outputs.should_migrate == 'true'
