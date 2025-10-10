@@ -22,19 +22,17 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     bind = op.get_bind()
 
-    user_role_enum = sa.Enum("STUDENT", "ADMIN", name="user_role_enum")
-    user_status_enum = sa.Enum("ACTIVE", "BLOCKED", name="user_status_enum")
-    activity_type_enum = sa.Enum(
-        "LOGIN",
-        "LESSON_COMPLETED",
-        "QUIZ_ATTEMPT",
-        "CODE_EXECUTION",
-        name="activity_type_enum",
-    )
+    def ensure_enum(name: str, values: list[str]) -> postgresql.ENUM:
+        enum_type = postgresql.ENUM(*values, name=name, create_type=False)
+        enum_type.create(bind, checkfirst=True)
+        return enum_type
 
-    user_role_enum.create(bind, checkfirst=True)
-    user_status_enum.create(bind, checkfirst=True)
-    activity_type_enum.create(bind, checkfirst=True)
+    user_role_enum = ensure_enum("user_role_enum", ["STUDENT", "ADMIN"])
+    user_status_enum = ensure_enum("user_status_enum", ["ACTIVE", "BLOCKED"])
+    activity_type_enum = ensure_enum(
+        "activity_type_enum",
+        ["LOGIN", "LESSON_COMPLETED", "QUIZ_ATTEMPT", "CODE_EXECUTION"],
+    )
 
     uuid_type = postgresql.UUID(as_uuid=True)
 
