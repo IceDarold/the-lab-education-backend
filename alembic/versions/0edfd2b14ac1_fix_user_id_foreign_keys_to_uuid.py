@@ -9,7 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 from sqlalchemy.engine import Connection
 from sqlalchemy.dialects import postgresql
 
@@ -43,9 +43,16 @@ def upgrade() -> None:
     if _column_is_uuid(bind, 'enrollments', 'user_id'):
         return
 
-    op.drop_constraint('enrollments_user_id_fkey', 'enrollments', type_='foreignkey')
-    op.drop_constraint('user_lesson_progress_user_id_fkey', 'user_lesson_progress', type_='foreignkey')
-    op.drop_constraint('user_activity_logs_user_id_fkey', 'user_activity_logs', type_='foreignkey')
+    inspector = inspect(bind)
+
+    def drop_fk_if_exists(table: str, constraint: str) -> None:
+        foreign_keys = {fk['name'] for fk in inspector.get_foreign_keys(table)}
+        if constraint in foreign_keys:
+            op.drop_constraint(constraint, table, type_='foreignkey')
+
+    drop_fk_if_exists('enrollments', 'enrollments_user_id_fkey')
+    drop_fk_if_exists('user_lesson_progress', 'user_lesson_progress_user_id_fkey')
+    drop_fk_if_exists('user_activity_logs', 'user_activity_logs_user_id_fkey')
 
     uuid_type = postgresql.UUID(as_uuid=True)
     op.alter_column('enrollments', 'user_id', type_=uuid_type)
