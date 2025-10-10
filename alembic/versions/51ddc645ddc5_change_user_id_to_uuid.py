@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -22,6 +23,9 @@ def upgrade() -> None:
     """Upgrade schema."""
     bind = op.get_bind()
 
+    op.execute("DROP TABLE IF EXISTS user_lesson_progress CASCADE")
+    op.execute("DROP TABLE IF EXISTS user_activity_logs CASCADE")
+    op.execute("DROP TABLE IF EXISTS enrollments CASCADE")
     op.execute("DROP TABLE IF EXISTS users CASCADE")
     op.execute("DROP TYPE IF EXISTS user_role_enum CASCADE")
     op.execute("DROP TYPE IF EXISTS user_status_enum CASCADE")
@@ -35,37 +39,115 @@ def upgrade() -> None:
     user_status_enum.create(bind, checkfirst=True)
     activity_type_enum.create(bind, checkfirst=True)
 
+    uuid_pk = postgresql.UUID(as_uuid=True)
+
     op.create_table(
         'users',
-        sa.Column('id', sa.UUID(), nullable=False),
+        sa.Column('id', uuid_pk, primary_key=True, nullable=False),
         sa.Column('fullName', sa.String(length=100), nullable=False),
         sa.Column('email', sa.String(length=100), nullable=False),
         sa.Column('hashed_password', sa.String(), nullable=False),
         sa.Column('role', user_role_enum, nullable=False),
         sa.Column('status', user_status_enum, nullable=False),
+        sa.Column('registrationDate', sa.DateTime(), server_default=sa.text('now()'), nullable=True)
+    )
+    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
+
+    op.create_table(
+        'enrollments',
+        sa.Column('id', uuid_pk, primary_key=True, nullable=False),
+        sa.Column('user_id', uuid_pk, nullable=False),
+        sa.Column('course_slug', sa.String(length=100), nullable=False),
+        sa.Column('enrollment_date', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'])
+    )
+    op.create_index(op.f('ix_enrollments_course_slug'), 'enrollments', ['course_slug'], unique=False)
+
+    op.create_table(
+        'user_activity_logs',
+        sa.Column('id', uuid_pk, primary_key=True, nullable=False),
+        sa.Column('user_id', uuid_pk, nullable=False),
+        sa.Column('activity_type', activity_type_enum, nullable=False),
+        sa.Column('details', sa.JSON(), nullable=True),
+        sa.Column('timestamp', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'])
+    )
+    op.create_index(op.f('ix_user_activity_logs_timestamp'), 'user_activity_logs', ['timestamp'], unique=False)
+
+    op.create_table(
+        'user_lesson_progress',
+        sa.Column('id', uuid_pk, primary_key=True, nullable=False),
+        sa.Column('user_id', uuid_pk, nullable=False),
+        sa.Column('course_slug', sa.String(length=100), nullable=False),
+        sa.Column('lesson_slug', sa.String(length=100), nullable=False),
+        sa.Column('completion_date', sa.DateTime(), nullable=False),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'])
+    )
+    op.create_index(op.f('ix_user_lesson_progress_course_slug'), 'user_lesson_progress', ['course_slug'], unique=False)
+    op.create_index(op.f('ix_user_lesson_progress_lesson_slug'), 'user_lesson_progress', ['lesson_slug'], unique=False)
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    op.drop_index(op.f('ix_user_lesson_progress_lesson_slug'), table_name='user_lesson_progress')
+    op.drop_index(op.f('ix_user_lesson_progress_course_slug'), table_name='user_lesson_progress')
+    op.drop_table('user_lesson_progress')
+    op.drop_index(op.f('ix_user_activity_logs_timestamp'), table_name='user_activity_logs')
+    op.drop_table('user_activity_logs')
+    op.drop_index(op.f('ix_enrollments_course_slug'), table_name='enrollments')
+    op.drop_table('enrollments')
+    op.drop_index(op.f('ix_users_email'), table_name='users')
+    op.drop_table('users')
+
+    op.execute("DROP TYPE IF EXISTS user_role_enum CASCADE")
+    op.execute("DROP TYPE IF EXISTS user_status_enum CASCADE")
+    op.execute("DROP TYPE IF EXISTS activity_type_enum CASCADE")
+
+    op.create_table(
+        'users',
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column('fullName', sa.String(length=100), nullable=False),
+        sa.Column('email', sa.String(length=100), nullable=False),
+        sa.Column('hashed_password', sa.String(), nullable=False),
+        sa.Column('role', sa.Enum('STUDENT', 'ADMIN', name='user_role_enum'), nullable=False),
+        sa.Column('status', sa.Enum('ACTIVE', 'BLOCKED', name='user_status_enum'), nullable=False),
         sa.Column('registrationDate', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
 
-
-def downgrade() -> None:
-    """Downgrade schema."""
-    op.execute("DROP TABLE IF EXISTS users CASCADE")
-    op.execute("DROP TYPE IF EXISTS user_role_enum CASCADE")
-    op.execute("DROP TYPE IF EXISTS user_status_enum CASCADE")
-    op.execute("DROP TYPE IF EXISTS activity_type_enum CASCADE")
-
-    op.execute(
-        """
-        CREATE TABLE users (
-            id SERIAL PRIMARY KEY,
-            "fullName" VARCHAR(100) NOT NULL,
-            email VARCHAR(100) NOT NULL,
-            hashed_password VARCHAR NOT NULL,
-            role VARCHAR NOT NULL,
-            status VARCHAR NOT NULL,
-            "registrationDate" TIMESTAMP WITHOUT TIME ZONE DEFAULT now()
-        )
-        """
+    op.create_table(
+        'enrollments',
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('course_slug', sa.String(length=100), nullable=False),
+        sa.Column('enrollment_date', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id']),
+        sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_enrollments_course_slug'), 'enrollments', ['course_slug'], unique=False)
+
+    op.create_table(
+        'user_activity_logs',
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('activity_type', sa.Enum('LOGIN', 'LESSON_COMPLETED', 'QUIZ_ATTEMPT', 'CODE_EXECUTION', name='activity_type_enum'), nullable=False),
+        sa.Column('details', sa.JSON(), nullable=True),
+        sa.Column('timestamp', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id']),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_user_activity_logs_timestamp'), 'user_activity_logs', ['timestamp'], unique=False)
+
+    op.create_table(
+        'user_lesson_progress',
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('course_slug', sa.String(length=100), nullable=False),
+        sa.Column('lesson_slug', sa.String(length=100), nullable=False),
+        sa.Column('completion_date', sa.DateTime(), nullable=False),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id']),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_user_lesson_progress_course_slug'), 'user_lesson_progress', ['course_slug'], unique=False)
+    op.create_index(op.f('ix_user_lesson_progress_lesson_slug'), 'user_lesson_progress', ['lesson_slug'], unique=False)

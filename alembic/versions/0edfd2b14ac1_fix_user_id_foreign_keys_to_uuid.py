@@ -9,6 +9,9 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import text
+from sqlalchemy.engine import Connection
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -18,19 +21,37 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _column_is_uuid(connection: Connection, table: str, column: str) -> bool:
+    result = connection.execute(
+        text(
+            """
+            SELECT data_type
+            FROM information_schema.columns
+            WHERE table_name = :table AND column_name = :column
+            """
+        ),
+        {"table": table, "column": column}
+    ).scalar()
+    return result == 'uuid'
+
+
 def upgrade() -> None:
     """Upgrade schema."""
-    # Drop foreign key constraints
+    bind = op.get_bind()
+
+    # Tables may already contain UUID columns if recreated in previous migration.
+    if _column_is_uuid(bind, 'enrollments', 'user_id'):
+        return
+
     op.drop_constraint('enrollments_user_id_fkey', 'enrollments', type_='foreignkey')
     op.drop_constraint('user_lesson_progress_user_id_fkey', 'user_lesson_progress', type_='foreignkey')
     op.drop_constraint('user_activity_logs_user_id_fkey', 'user_activity_logs', type_='foreignkey')
 
-    # Alter user_id columns to UUID
-    op.alter_column('enrollments', 'user_id', type_=sa.UUID())
-    op.alter_column('user_lesson_progress', 'user_id', type_=sa.UUID())
-    op.alter_column('user_activity_logs', 'user_id', type_=sa.UUID())
+    uuid_type = postgresql.UUID(as_uuid=True)
+    op.alter_column('enrollments', 'user_id', type_=uuid_type)
+    op.alter_column('user_lesson_progress', 'user_id', type_=uuid_type)
+    op.alter_column('user_activity_logs', 'user_id', type_=uuid_type)
 
-    # Recreate foreign key constraints
     op.create_foreign_key('enrollments_user_id_fkey', 'enrollments', 'users', ['user_id'], ['id'])
     op.create_foreign_key('user_lesson_progress_user_id_fkey', 'user_lesson_progress', 'users', ['user_id'], ['id'])
     op.create_foreign_key('user_activity_logs_user_id_fkey', 'user_activity_logs', 'users', ['user_id'], ['id'])
