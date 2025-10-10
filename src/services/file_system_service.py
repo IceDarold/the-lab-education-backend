@@ -8,6 +8,7 @@ from typing import Literal
 import aiofiles
 
 from src.core.errors import ContentFileNotFoundError, FileSystemOperationError, SecurityError
+from src.core.config import settings
 from src.core.logging import get_logger
 
 
@@ -19,8 +20,9 @@ class DirectoryScanResult:
 
 
 class FileSystemService:
-    def __init__(self):
-        self.content_root = Path('./content').resolve()
+    def __init__(self, content_root: str | Path | None = None):
+        root = content_root if content_root is not None else settings.CONTENT_ROOT or "./content"
+        self.content_root = Path(root).resolve()
         self.logger = get_logger(__name__)
 
     async def ensure_content_root_exists(self):

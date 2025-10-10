@@ -16,7 +16,7 @@ async def finalize_supabase_result(result: Any) -> Any:
     """Finalize a Supabase query result by executing it if needed and awaiting if necessary."""
     try:
         execute = getattr(result, "execute", None)
-        if callable(execute):
+        if callable(execute) and not (AsyncMock is not None and isinstance(result, AsyncMock)):
             result = execute()
         while True:
             if AsyncMock is not None and isinstance(result, AsyncMock):
