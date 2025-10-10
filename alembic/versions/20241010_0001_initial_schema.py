@@ -86,10 +86,13 @@ def upgrade() -> None:
         sa.Column("id", uuid_type, primary_key=True, nullable=False),
         sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=True),
+        sa.Column("email", sa.String(length=254), nullable=False),
         sa.Column("full_name", sa.String(), nullable=True),
         sa.Column("avatar_url", sa.String(), nullable=True),
         sa.Column("role", sa.String(), nullable=False, server_default="student"),
+        sa.UniqueConstraint("email", name="uq_profiles_email"),
     )
+    op.create_index("ix_profiles_email", "profiles", ["email"], unique=True)
 
     op.create_table(
         "user_sessions",
@@ -112,6 +115,7 @@ def downgrade() -> None:
     op.drop_index("ix_user_sessions_user_id", table_name="user_sessions")
     op.drop_table("user_sessions")
 
+    op.drop_index("ix_profiles_email", table_name="profiles")
     op.drop_table("profiles")
 
     op.drop_constraint("user_lesson_progress_user_id_fkey", "user_lesson_progress", type_="foreignkey")

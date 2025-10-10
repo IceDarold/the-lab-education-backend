@@ -12,6 +12,7 @@ class Profile(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    email = Column(String(254), unique=True, index=True, nullable=False)
     full_name = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)
     role = Column(String, default="student", nullable=False)

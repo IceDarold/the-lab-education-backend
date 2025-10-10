@@ -34,6 +34,7 @@ class ProfileService:
 
             profile = Profile(
                 id=profile_uuid,
+                email=email,
                 full_name=full_name,
                 role=role
             )
