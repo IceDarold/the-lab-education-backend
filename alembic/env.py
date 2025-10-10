@@ -3,6 +3,7 @@ import os
 
 from sqlalchemy import engine_from_config, create_engine
 from sqlalchemy import pool
+from sqlalchemy.engine import make_url
 
 from alembic import context
 
@@ -64,9 +65,22 @@ def run_migrations_online() -> None:
     load_dotenv()
 
     url = os.getenv("DATABASE_URL")
+    if not url:
+        raise RuntimeError("DATABASE_URL environment variable is not set")
+
+    engine_url = make_url(url)
+    if engine_url.drivername.endswith("+asyncpg"):
+        engine_url = engine_url.set(
+            drivername=engine_url.drivername.replace("+asyncpg", "+psycopg2")
+        )
+
+    connect_args = {}
+    if engine_url.drivername.startswith("postgresql"):
+        connect_args["connect_timeout"] = 10
+
     connectable = create_engine(
-        url,
-        connect_args={"connect_timeout": 10},
+        engine_url,
+        connect_args=connect_args,
         poolclass=pool.NullPool,
     )
 
