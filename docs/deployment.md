@@ -138,6 +138,11 @@ poetry run pytest --cov=src
    - Automatically runs migrations
    - Verifies migration success
 
+3. **Automatic migration before app start**:
+   - Ensure the runtime (Vercel serverless function or container) executes `poetry run alembic upgrade head` before serving traffic
+   - This keeps the schema up to date even for manual restarts outside the CI/CD pipeline
+   - Store the command in the startup script or deployment platform hook
+
 ### Post-deployment
 - [ ] Verify application is running
 - [ ] Check database migration status
