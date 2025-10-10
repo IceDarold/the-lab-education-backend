@@ -8,8 +8,11 @@ from src.core.security import get_current_user
 from src.core.supabase_client import get_resilient_supabase_admin_client, get_resilient_supabase_client
 from src.schemas.token import Token
 from src.schemas.user import CheckEmailRequest, ForgotPasswordRequest, ResetPasswordRequest, User, UserCreate
+from src.core.logging import get_logger
+from src.core.config import settings
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 def get_supabase_client():
@@ -131,9 +134,13 @@ async def check_email(request: CheckEmailRequest):
         exists = bool(getattr(profile_response, "data", []))
         return {"exists": exists}
     except Exception as exc:
+        logger.exception("Failed to check email existence for '%s'", request.email)
+        error_detail: Any = "Database error"
+        if settings.DEBUG:
+            error_detail = {"message": "Database error", "error": str(exc)}
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database error",
+            detail=error_detail,
         ) from exc
 
 
@@ -155,9 +162,13 @@ async def forgot_password(request: ForgotPasswordRequest):
     except HTTPException:
         raise
     except Exception as exc:
+        logger.exception("Failed to verify email existence during forgot-password for '%s'", request.email)
+        error_detail: Any = "Database error"
+        if settings.DEBUG:
+            error_detail = {"message": "Database error", "error": str(exc)}
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database error",
+            detail=error_detail,
         ) from exc
 
     # Send reset email using regular client
@@ -168,9 +179,13 @@ async def forgot_password(request: ForgotPasswordRequest):
         )
         return {"message": "Password reset email sent"}
     except Exception as exc:
+        logger.exception("Failed to send reset password email for '%s'", request.email)
+        error_detail: Any = "Failed to send reset email"
+        if settings.DEBUG:
+            error_detail = {"message": "Failed to send reset email", "error": str(exc)}
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send reset email",
+            detail=error_detail,
         ) from exc
 
 
