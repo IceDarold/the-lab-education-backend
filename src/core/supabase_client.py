@@ -248,7 +248,7 @@ class ResilientSupabaseClient:
             self._client = client
 
         def __call__(self, table_name: str):
-            return self._TableInstance(self._client, table_name)
+            return ResilientSupabaseClient._TableInstance(self._client, table_name)
 
     class _TableInstance:
         def __init__(self, client: 'ResilientSupabaseClient', table_name: str):
