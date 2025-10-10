@@ -10,7 +10,7 @@ class UserSession(Base):
     __tablename__ = "user_sessions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
     refresh_token_hash = Column(String, nullable=False, unique=True)
     device_info = Column(String, nullable=True)  # Optional: browser, device info
     ip_address = Column(String, nullable=True)
