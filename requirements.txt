@@ -17,3 +17,7 @@ fastapi-cache2==0.2.1
 PyJWT==2.10.1
 loguru==0.7.0
 cachetools==5.5.0
+pytest==8.4.2
+pytest-asyncio==1.2.0
+pytest-cov==4.1.0
+pytest-mock==3.14.0
