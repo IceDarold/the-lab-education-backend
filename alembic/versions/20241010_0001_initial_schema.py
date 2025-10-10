@@ -114,16 +114,20 @@ def downgrade() -> None:
 
     op.drop_table("profiles")
 
+    op.drop_constraint("user_lesson_progress_user_id_fkey", "user_lesson_progress", type_="foreignkey")
     op.drop_index("ix_user_lesson_progress_lesson_slug", table_name="user_lesson_progress")
     op.drop_index("ix_user_lesson_progress_course_slug", table_name="user_lesson_progress")
     op.drop_table("user_lesson_progress")
 
+    op.drop_constraint("user_activity_logs_user_id_fkey", "user_activity_logs", type_="foreignkey")
     op.drop_index("ix_user_activity_logs_timestamp", table_name="user_activity_logs")
     op.drop_table("user_activity_logs")
 
+    op.drop_constraint("enrollments_user_id_fkey", "enrollments", type_="foreignkey")
     op.drop_index("ix_enrollments_course_slug", table_name="enrollments")
     op.drop_table("enrollments")
 
+    op.drop_constraint("users_role_fkey", "users", type_="foreignkey", existing=False)
     op.drop_index("ix_users_email", table_name="users")
     op.drop_table("users")
 
