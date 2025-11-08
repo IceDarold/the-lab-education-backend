@@ -1,176 +1,172 @@
+### **Database Table Structure**
 
-### **Структура Таблиц Базы Данных**
+#### **Table 1: `profiles`**
+* **Purpose:** Stores public profile metadata for users and extends `auth.users`.
+* **Relationship:** One-to-one with `auth.users`.
 
-#### **Таблица 1: `profiles`**
-*   **Назначение:** Хранит публичную информацию о пользователях, расширяя встроенную таблицу `auth.users`.
-*   **Связь:** Один-к-одному с `auth.users`.
-
-| Колонка | Тип | Описание |
+| Column | Type | Description |
 | :--- | :--- | :--- |
-| `id` | `uuid` | **PRIMARY KEY**. Это **FOREIGN KEY**, ссылающийся на `auth.users.id`. Это ключ к успеху в Supabase. |
-| `created_at` | `timestamptz` | Дата создания, `DEFAULT now()`. |
-| `updated_at` | `timestamptz` | Дата обновления, `DEFAULT now()`. |
-| `full_name` | `text` | Полное имя пользователя. |
-| `avatar_url` | `text` | (Опционально) Ссылка на аватар пользователя. |
-| `role` | `text` | Роль пользователя, по умолчанию 'student'. Может быть 'student' или 'admin'. |
+| `id` | `uuid` | **PRIMARY KEY** and **FOREIGN KEY** referencing `auth.users.id`. This is the Supabase linkage key. |
+| `created_at` | `timestamptz` | Creation timestamp, `DEFAULT now()`. |
+| `updated_at` | `timestamptz` | Updated timestamp, `DEFAULT now()`. |
+| `full_name` | `text` | User’s full name. |
+| `avatar_url` | `text` | Optional link to the user’s avatar. |
+| `role` | `text` | User role, defaults to `'student'`. Allowed values: `'student'`, `'admin'`. |
 
-*   **RLS Политики:**
-    *   **`SELECT`:** Пользователь может видеть только свой собственный профиль (`auth.uid() = id`).
-    *   **`UPDATE`:** Пользователь может обновлять только свой собственный профиль.
+* **RLS Policies:**
+  * **`SELECT`:** Users can only view their own profile (`auth.uid() = id`).
+  * **`UPDATE`:** Users can only update their own profile.
 
 ---
 
-#### **Таблица 2: `courses`**
-*   **Назначение:** Хранит информацию о курсах.
+#### **Table 2: `courses`**
+* **Purpose:** Stores metadata for each course.
 
-| Колонка | Тип | Описание |
+| Column | Type | Description |
 | :--- | :--- | :--- |
 | `id` | `uuid` | **PRIMARY KEY**, `DEFAULT gen_random_uuid()`. |
 | `created_at` | `timestamptz` | `DEFAULT now()`. |
-| `title` | `text` | Название курса, `NOT NULL`. |
-| `slug` | `text` | Уникальная строка для URL (напр., "classic-machine-learning"), `UNIQUE`. |
-| `description` | `text` | Краткое описание курса. |
-| `cover_image_url`| `text` | Ссылка на обложку курса. |
+| `title` | `text` | Course title, `NOT NULL`. |
+| `slug` | `text` | Unique slug for URLs (e.g., `"classic-machine-learning"`), `UNIQUE`. |
+| `description` | `text` | Short summary of the course. |
+| `cover_image_url` | `text` | Cover image URL. |
 
-*   **RLS Политики:**
-    *   **`SELECT`:** **Все** пользователи (включая анонимных) могут видеть список курсов. Это публичный каталог.
-    *   **`INSERT`, `UPDATE`, `DELETE`:** Только для администраторов (потребуется отдельная логика ролей).
+* **RLS Policies:**
+  * **`SELECT`:** Public catalog—everyone (including anonymous users) may read.
+  * **`INSERT`, `UPDATE`, `DELETE`:** Admin only (requires role-based logic).
 
 ---
 
-#### **Таблица 3: `modules` (Части курса)**
-*   **Назначение:** Группирует уроки в логические блоки (Часть 1, Часть 2 и т.д.).
+#### **Table 3: `modules`**
+* **Purpose:** Groups lessons into logical blocks (Part 1, Part 2, etc.).
 
-| Колонка | Тип | Описание |
+| Column | Type | Description |
 | :--- | :--- | :--- |
 | `id` | `uuid` | **PRIMARY KEY**. |
 | `created_at` | `timestamptz` | `DEFAULT now()`. |
-| `course_id` | `uuid` | **FOREIGN KEY** на `courses.id`. |
-| `title` | `text` | Название части (напр., "Фундаментальные Алгоритмы"). |
-| `order_index` | `integer` | Порядок отображения (1, 2, 3...). |
+| `course_id` | `uuid` | **FOREIGN KEY** referencing `courses.id`. |
+| `title` | `text` | Module title (e.g., “Core Algorithms”). |
+| `order_index` | `integer` | Display order (1, 2, 3...). |
 
-*   **RLS Политики:**
-    *   **`SELECT`:** Все могут видеть структуру модулей (это часть публичной программы курса).
+* **RLS Policies:**
+  * **`SELECT`:** Public structure—anyone may read module outlines.
 
 ---
 
-#### **Таблица 4: `lessons`**
-*   **Назначение:** Хранит контент одного урока.
+#### **Table 4: `lessons`**
+* **Purpose:** Stores the content for each lesson.
 
-| Колонка | Тип | Описание |
+| Column | Type | Description |
 | :--- | :--- | :--- |
 | `id` | `uuid` | **PRIMARY KEY**. |
 | `created_at` | `timestamptz` | `DEFAULT now()`. |
-| `module_id` | `uuid` | **FOREIGN KEY** на `modules.id`. |
-| `title` | `text` | Название урока. |
-| `slug` | `text` | Уникальная строка для URL. |
-| `content_markdown`| `text` | Основной теоретический материал урока. |
-| `quiz_data` | `jsonb` | Структурированные данные квиза в формате JSON. |
-| `order_index` | `integer` | Порядок урока внутри модуля. |
+| `module_id` | `uuid` | **FOREIGN KEY** referencing `modules.id`. |
+| `title` | `text` | Lesson title. |
+| `slug` | `text` | Unique slug used in URLs. |
+| `content_markdown` | `text` | Primary lesson body in Markdown. |
+| `quiz_data` | `jsonb` | Structured quiz metadata. |
+| `order_index` | `integer` | Lesson order within the module. |
 
-*   **RLS Политики:**
-    *   **`SELECT`:** **Самая важная политика!** Пользователь может читать урок, **ТОЛЬКО ЕСЛИ** он записан на соответствующий курс. Это потребует `JOIN` в RLS-правиле.
-    *   Пример RLS-правила для `SELECT`: `exists (select 1 from enrollments where enrollments.course_id = (select course_id from modules where modules.id = lessons.module_id) and enrollments.user_id = auth.uid())`
+* **RLS Policies:**
+  * **`SELECT`:** Users may read a lesson **only if** they are enrolled in the corresponding course. This requires a `JOIN` in the policy.
+  * **Policy Example:** `exists (select 1 from enrollments where enrollments.course_id = (select course_id from modules where modules.id = lessons.module_id) and enrollments.user_id = auth.uid())`
 
 ---
 
-#### **Таблица 5: `enrollments` (Записи на курс)**
-*   **Назначение:** Связующая таблица между пользователями и курсами.
+#### **Table 5: `enrollments`**
+* **Purpose:** Join table linking users to courses.
 
-| Колонка | Тип | Описание |
+| Column | Type | Description |
 | :--- | :--- | :--- |
 | `id` | `uuid` | **PRIMARY KEY**. |
 | `created_at` | `timestamptz` | `DEFAULT now()`. |
-| `user_id` | `uuid` | **FOREIGN KEY** на `auth.users.id`. |
-| `course_id` | `uuid` | **FOREIGN KEY** на `courses.id`. |
+| `user_id` | `uuid` | **FOREIGN KEY** referencing `auth.users.id`. |
+| `course_id` | `uuid` | **FOREIGN KEY** referencing `courses.id`. |
 
-*   **RLS Политики:**
-    *   **`SELECT`:** Пользователь может видеть только свои записи (`user_id = auth.uid()`).
-    *   **`INSERT`:** Пользователь может создавать записи только для самого себя.
+* **RLS Policies:**
+  * **`SELECT`:** Users only see their own enrollments (`user_id = auth.uid()`).
+  * **`INSERT`:** Users can only enroll themselves.
 
 ---
 
-#### **Таблица 6: `user_lesson_progress`**
-*   **Назначение:** Отслеживает статус прохождения каждого урока каждым пользователем.
+#### **Table 6: `user_lesson_progress`**
+* **Purpose:** Tracks each user’s status on each lesson.
 
-| Колонка | Тип | Описание |
+| Column | Type | Description |
 | :--- | :--- | :--- |
 | `id` | `uuid` | **PRIMARY KEY**. |
-| `user_id` | `uuid` | **FOREIGN KEY** на `auth.users.id`. |
-| `lesson_id` | `uuid` | **FOREIGN KEY** на `lessons.id`. |
-| `status` | `text` | `DEFAULT 'not_started'`. Может быть `'in_progress'`, `'completed'`. |
-| `completed_at` | `timestamptz` | Дата завершения. |
+| `user_id` | `uuid` | **FOREIGN KEY** referencing `auth.users.id`. |
+| `lesson_id` | `uuid` | **FOREIGN KEY** referencing `lessons.id`. |
+| `status` | `text` | `DEFAULT 'not_started'`. Allowed values: `'not_started'`, `'in_progress'`, `'completed'`. |
+| `completed_at` | `timestamptz` | Completion timestamp. |
 
-*   **RLS Политики:**
-    *   **`SELECT`, `INSERT`, `UPDATE`:** Пользователь может работать только со своими записями о прогрессе (`user_id = auth.uid()`).
+* **RLS Policies:**
+  * **`SELECT`, `INSERT`, `UPDATE`:** Users may only manipulate their own progress (`user_id = auth.uid()`).
 
 ---
 
-#### **Таблица 7: `profiles`**
-*   **Назначение:** Хранит расширенную информацию о пользователях, синхронизированную с `auth.users`.
+#### **Table 7: `profiles` (duplicate explanation)**
+* **Purpose:** Stores extended user metadata synchronized with `auth.users`.
 
-| Колонка | Тип | Описание |
+| Column | Type | Description |
 | :--- | :--- | :--- |
-| `id` | `uuid` | **PRIMARY KEY**. Ссылается на `auth.users.id`. |
-| `created_at` | `timestamptz` | Дата создания, `DEFAULT now()`. |
-| `updated_at` | `timestamptz` | Дата обновления, `DEFAULT now()`. |
-| `full_name` | `text` | Полное имя пользователя. |
-| `avatar_url` | `text` | (Опционально) Ссылка на аватар пользователя. |
-| `role` | `text` | Роль пользователя, по умолчанию 'student'. |
+| `id` | `uuid` | **PRIMARY KEY** referencing `auth.users.id`. |
+| `created_at` | `timestamptz` | `DEFAULT now()`. |
+| `updated_at` | `timestamptz` | `DEFAULT now()`. |
+| `full_name` | `text` | User’s full name. |
+| `avatar_url` | `text` | Optional avatar URL. |
+| `role` | `text` | Defaults to `'student'`. |
 
-*   **RLS Политики:**
-    *   **`SELECT`:** Пользователь может видеть только свой профиль.
-    *   **`UPDATE`:** Пользователь может обновлять только свой профиль.
+* **RLS Policies:**
+  * **`SELECT`:** Users see only their own profile.
+  * **`UPDATE`:** Users update only their own profile.
 
 ---
 
-#### **Таблица 8: `user_sessions`**
-*   **Назначение:** Хранит активные сессии пользователей для управления refresh токенами.
+#### **Table 8: `user_sessions`**
+* **Purpose:** Tracks active sessions for refresh token management.
 
-| Колонка | Тип | Описание |
+| Column | Type | Description |
 | :--- | :--- | :--- |
 | `id` | `uuid` | **PRIMARY KEY**. |
-| `user_id` | `uuid` | **FOREIGN KEY** на `profiles.id`. |
-| `refresh_token_hash` | `text` | Хэш refresh токена для безопасного хранения. |
-| `device_info` | `text` | (Опционально) Информация об устройстве. |
-| `ip_address` | `text` | (Опционально) IP адрес пользователя. |
-| `expires_at` | `timestamptz` | Дата истечения сессии. |
-| `is_active` | `boolean` | Флаг активности сессии, по умолчанию `true`. |
-| `created_at` | `timestamptz` | Дата создания, `DEFAULT now()`. |
-| `last_used_at` | `timestamptz` | Дата последнего использования, `DEFAULT now()`. |
+| `user_id` | `uuid` | **FOREIGN KEY** referencing `profiles.id`. |
+| `refresh_token_hash` | `text` | Hashed refresh token for secure storage. |
+| `device_info` | `text` | Optional device metadata. |
+| `ip_address` | `text` | Optional IP address. |
+| `expires_at` | `timestamptz` | Session expiration time. |
+| `is_active` | `boolean` | Session flag, defaults to `true`. |
+| `created_at` | `timestamptz` | `DEFAULT now()`. |
+| `last_used_at` | `timestamptz` | Defaults to `now()`. |
 
-*   **Индексы:**
-    *   Индекс на `user_id` для быстрого поиска сессий пользователя.
-    *   Уникальный индекс на `refresh_token_hash`.
+* **Indexes:**
+  * Index on `user_id` for fast lookup.
+  * Unique index on `refresh_token_hash`.
 
-*   **RLS Политики:**
-    *   **`SELECT`, `INSERT`, `UPDATE`:** Только для системных операций (не доступно пользователям напрямую).
+* **RLS Policies:**
+  * **`SELECT`, `INSERT`, `UPDATE`:** Reserved for system processes (not directly exposed to users).
 
 ---
 
-### **Автоматизация (Триггеры и Функции PostgreSQL)**
+### **Automation (Triggers and Functions)**
 
-В редакторе SQL в Supabase можно добавить эти полезные функции.
+The Supabase SQL editor can host these helpers.
 
-1.  **Автоматическое обновление `updated_at`:**
-    ```sql
-    create extension if not exists moddatetime schema extensions;
+1. **Auto-update `updated_at`:**
+   ```sql
+   create extension if not exists moddatetime schema extensions;
 
-    -- Создаем триггер для таблицы profiles
-    create trigger handle_updated_at before update on profiles
-    for each row execute procedure extensions.moddatetime (updated_at);
-    ```
-    *(Этот триггер нужно создать для каждой таблицы, где есть `updated_at`)*
+   create trigger handle_updated_at before update on profiles
+   for each row execute procedure extensions.moddatetime (updated_at);
+   ```
+   *(Repeat this trigger per table that has an `updated_at` column.)*
 
-2.  **Создание `slug` из `title`:**
-    ```sql
-    -- Функция для транслитерации и создания slug
-    create or replace function public.slugify(text)
-    returns text as $$
-        -- ... (код функции для превращения "Привет, Мир!" в "privet-mir") ...
-    $$ language sql immutable;
+2. **Generate slug from title:**
+   ```sql
+   create or replace function public.slugify(text)
+   returns text as $$
+       -- ... (function body that converts "Привет, Мир!" into "privet-mir") ...
+   $$ language sql immutable;
 
-    -- Триггер, который будет вызывать эту функцию перед вставкой в courses
-    create trigger slugify_course_title before insert on courses
-    for each row execute procedure ...
-    ```
+   create trigger slugify_course_title before insert on courses
+   for each row execute procedure ...
+   ```

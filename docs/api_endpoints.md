@@ -1,26 +1,25 @@
+### **API v1 — Endpoint Design**
 
-### **API v1 — Проектирование Эндпоинтов**
-
-**Базовый URL:** `/api/v1`
+**Base URL:** `/api/v1`
 
 ---
 
-### **Ресурс: `Auth` (Аутентификация)**
-* **Роутер:** `/auth`
+### **Resource: `Auth` (Authentication)**
+* **Router:** `/auth`
 
-#### **1. Регистрация**
-* **Эндпоинт:** `POST /auth/register`
-* **Назначение:** Создание нового пользователя.
-* **Аутентификация:** Не требуется.
-* **Request Body (Схема Pydantic `UserCreate`):**
+#### **1. Registration**
+* **Endpoint:** `POST /auth/register`
+* **Purpose:** Create a new user account.
+* **Authentication:** Not required.
+* **Request Body (Pydantic schema `UserCreate`):**
   ```json
   {
-    "full_name": "Алексей Петров",
+    "full_name": "Alexey Petrov",
     "email": "alexey.p@email.com",
     "password": "supersecretpassword123"
   }
   ```
-* **Success Response (201 Created) (Схема `Token`):**
+* **Success Response (201 Created) (schema `Token`):**
   ```json
   {
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -28,12 +27,12 @@
   }
   ```
 
-#### **2. Вход (Получение токена)**
-* **Эндпоинт:** `POST /auth/login`
-* **Назначение:** Аутентификация пользователя и выдача JWT-токена.
-* **Аутентификация:** Не требуется.
-* **Request Body (Форма OAuth2):** `username` (будет `email`) и `password`.
-* **Success Response (200 OK) (Схема `Token`):**
+#### **2. Login (Token issued)**
+* **Endpoint:** `POST /auth/login`
+* **Purpose:** Authenticate a user and issue a JWT token.
+* **Authentication:** Not required.
+* **Request Body (OAuth2 form):** `username` (email) and `password`.
+* **Success Response (200 OK) (schema `Token`):**
   ```json
   {
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -41,17 +40,17 @@
   }
   ```
 
-#### **3. Обновление токенов**
-* **Эндпоинт:** `POST /auth/refresh`
-* **Назначение:** Обновление JWT токенов доступа с использованием refresh токена.
-* **Аутентификация:** Не требуется (работает с refresh токеном).
-* **Request Body (Схема `RefreshTokenRequest`):**
+#### **3. Refresh Tokens**
+* **Endpoint:** `POST /auth/refresh`
+* **Purpose:** Refresh JWT access tokens using a refresh token.
+* **Authentication:** Not required (uses refresh token).
+* **Request Body (schema `RefreshTokenRequest`):**
   ```json
   {
     "refresh_token": "refresh.jwt.token"
   }
   ```
-* **Success Response (200 OK) (Схема `RefreshTokenResponse`):**
+* **Success Response (200 OK) (schema `RefreshTokenResponse`):**
   ```json
   {
     "access_token": "new.access.jwt.token",
@@ -67,24 +66,25 @@
   - `429 Too Many Requests`: Rate limit exceeded
   - `500 Internal Server Error`: Token generation failed
 
-#### **4. Получение данных о себе**
-* **Эндпоинт:** `GET /auth/me`
-* **Назначение:** Получение информации о текущем залогиненном пользователе.
-* **Аутентификация:** **Требуется (Bearer Token)**.
-* **Request Body:** Нет.
-* **Success Response (200 OK) (Схема `User`):**
+#### **4. Get Own Profile**
+* **Endpoint:** `GET /auth/me`
+* **Purpose:** Retrieve information about the current authenticated user.
+* **Authentication:** **Required (Bearer Token)**.
+* **Request Body:** None.
+* **Success Response (200 OK) (schema `User`):**
   ```json
   {
     "user_id": "uuid-goes-here",
-    "full_name": "Алексей Петров",
+    "full_name": "Alexey Petrov",
     "email": "alexey.p@email.com"
   }
   ```
-#### **4. Проверка существования email**
-* **Эндпоинт:** `POST /auth/check-email`
-* **Назначение:** Проверить, существует ли email в системе.
-* **Аутентификация:** Не требуется.
-* **Request Body (Схема `CheckEmailRequest`):**
+
+#### **5. Check Email Existence**
+* **Endpoint:** `POST /auth/check-email`
+* **Purpose:** Verify whether an email is already registered.
+* **Authentication:** Not required.
+* **Request Body (schema `CheckEmailRequest`):**
   ```json
   {
     "email": "user@example.com"
@@ -97,11 +97,11 @@
   }
   ```
 
-#### **5. Запрос на сброс пароля**
-* **Эндпоинт:** `POST /auth/forgot-password`
-* **Назначение:** Отправить email для сброса пароля.
-* **Аутентификация:** Не требуется.
-* **Request Body (Схема `ForgotPasswordRequest`):**
+#### **6. Forgot Password Request**
+* **Endpoint:** `POST /auth/forgot-password`
+* **Purpose:** Send a password reset email.
+* **Authentication:** Not required.
+* **Request Body (schema `ForgotPasswordRequest`):**
   ```json
   {
     "email": "user@example.com"
@@ -114,11 +114,11 @@
   }
   ```
 
-#### **6. Сброс пароля**
-* **Эндпоинт:** `POST /auth/reset-password`
-* **Назначение:** Сбросить пароль с использованием токена.
-* **Аутентификация:** Не требуется.
-* **Request Body (Схема `ResetPasswordRequest`):**
+#### **7. Reset Password**
+* **Endpoint:** `POST /auth/reset-password`
+* **Purpose:** Reset the password using the recovery token.
+* **Authentication:** Not required.
+* **Request Body (schema `ResetPasswordRequest`):**
   ```json
   {
     "token": "recovery_token",
@@ -134,47 +134,47 @@
 
 ---
 
-### **Ресурс: `Courses` (Курсы)**
-* **Роутер:** `/courses`
+### **Resource: `Courses`**
+* **Router:** `/courses`
 
-#### **1. Получение списка всех курсов (для публичного каталога)**
-* **Эндпоинт:** `GET /courses`
-* **Назначение:** Отображение всех доступных курсов на платформе.
-* **Аутентификация:** Не требуется.
-* **Request Body:** Нет.
-* **Success Response (200 OK) (Список схем `CoursePublic`):**
+#### **1. List all courses (public catalogue)**
+* **Endpoint:** `GET /courses`
+* **Purpose:** Show every publicly available course on the platform.
+* **Authentication:** Not required.
+* **Request Body:** None.
+* **Success Response (200 OK) (list of `CoursePublic` schema):**
   ```json
   [
     {
       "course_id": "uuid-course-1",
       "slug": "classic-machine-learning",
-      "title": "Классическое Машинное Обучение",
-      "description": "Изучите мощные алгоритмы...",
+      "title": "Classic Machine Learning",
+      "description": "Learn powerful algorithms...",
       "cover_image_url": "https://.../cover1.png"
     },
     ...
   ]
   ```
 
-#### **2. Получение детальной информации о курсе (для публичной страницы)**
-* **Эндпоинт:** `GET /courses/{slug}`
-* **Назначение:** Показать детальную программу курса для незаписанного пользователя.
-* **Аутентификация:** Не требуется.
-* **Request Body:** Нет.
-* **Success Response (200 OK) (Схема `CourseDetailsPublic`):**
+#### **2. Get course details (public page)**
+* **Endpoint:** `GET /courses/{slug}`
+* **Purpose:** Provide the detailed outline of a course for unauthenticated visitors.
+* **Authentication:** Not required.
+* **Request Body:** None.
+* **Success Response (200 OK) (schema `CourseDetailsPublic`):**
   ```json
   {
     "course_id": "uuid-course-1",
     "slug": "classic-machine-learning",
-    "title": "Классическое Машинное Обучение",
+    "title": "Classic Machine Learning",
     "description": "...",
     "cover_image_url": "...",
     "modules": [
       {
-        "title": "Часть 1: Введение в Мир ML",
+        "title": "Part 1: Introduction to the ML World",
         "lessons": [
-          { "title": "Урок 1: Что такое ML?" },
-          { "title": "Урок 2: Инструментарий Аналитика" }
+          { "title": "Lesson 1: What is ML?" },
+          { "title": "Lesson 2: Analyst Tooling" }
         ]
       },
       ...
@@ -182,30 +182,30 @@
   }
   ```
 
-#### **3. Запись на курс**
-* **Эндпоинт:** `POST /courses/{slug}/enroll`
-* **Назначение:** Записать текущего пользователя на курс.
-* **Аутентификация:** **Требуется**.
-* **Request Body:** Нет.
-* **Success Response (201 Created):** Пустое тело ответа.
+#### **3. Enroll in a course**
+* **Endpoint:** `POST /courses/{slug}/enroll`
+* **Purpose:** Enroll the current user into the selected course.
+* **Authentication:** **Required**.
+* **Request Body:** None.
+* **Success Response (201 Created):** Empty body.
 
 ---
 
-### **Ресурс: `Dashboard` (Личный кабинет пользователя)**
-* **Роутер:** `/dashboard`
+### **Resource: `Dashboard` (User Workspace)**
+* **Router:** `/dashboard`
 
-#### **1. Получение курсов пользователя**
-* **Эндпоинт:** `GET /dashboard/my-courses`
-* **Назначение:** Главный запрос для дашборда, получает список курсов пользователя с его прогрессом.
-* **Аутентификация:** **Требуется**.
-* **Request Body:** Нет.
-* **Success Response (200 OK) (Список схем `CourseWithProgress`):**
+#### **1. List user courses**
+* **Endpoint:** `GET /dashboard/my-courses`
+* **Purpose:** Primary dashboard query that returns a list of the user’s courses with progress.
+* **Authentication:** **Required**.
+* **Request Body:** None.
+* **Success Response (200 OK) (list of `CourseWithProgress` schema):**
   ```json
   [
     {
       "course_id": "uuid-course-1",
       "slug": "classic-machine-learning",
-      "title": "Классическое Машинное Обучение",
+      "title": "Classic Machine Learning",
       "cover_image_url": "...",
       "progress_percent": 35
     },
@@ -213,22 +213,22 @@
   ]
   ```
 
-#### **2. Получение детальной программы курса с прогрессом**
-* **Эндпоинт:** `GET /dashboard/courses/{slug}`
-* **Назначение:** Запрос для страницы конкретного курса, получает программу с прогрессом по каждому уроку.
-* **Аутентификация:** **Требуется**.
-* **Request Body:** Нет.
-* **Success Response (200 OK) (Схема `CourseDetailsWithProgress`):**
+#### **2. Get detailed course outline with progress**
+* **Endpoint:** `GET /dashboard/courses/{slug}`
+* **Purpose:** Fetch a course outline annotated with lesson progress for the authenticated user.
+* **Authentication:** **Required**.
+* **Request Body:** None.
+* **Success Response (200 OK) (schema `CourseDetailsWithProgress`):**
   ```json
   {
-    "title": "Классическое Машинное Обучение",
+    "title": "Classic Machine Learning",
     "overall_progress_percent": 35,
     "modules": [
       {
-        "title": "Часть 1: Введение",
+        "title": "Part 1: Introduction",
         "lessons": [
-          { "lesson_id": "uuid-lesson-1", "slug": "what-is-ml", "title": "Урок 1: Что такое ML?", "status": "completed" },
-          { "lesson_id": "uuid-lesson-2", "slug": "eda-tools", "title": "Урок 2: Инструментарий", "status": "in_progress" }
+          { "lesson_id": "uuid-lesson-1", "slug": "what-is-ml", "title": "Lesson 1: What is ML?", "status": "completed" },
+          { "lesson_id": "uuid-lesson-2", "slug": "eda-tools", "title": "Lesson 2: Tooling", "status": "in_progress" }
         ]
       },
       ...
@@ -238,24 +238,24 @@
 
 ---
 
-### **Ресурс: `Lessons` (Уроки)**
-* **Роутер:** `/lessons`
+### **Resource: `Lessons`**
+* **Router:** `/lessons`
 
-#### **1. Получение контента урока**
-* **Эндпоинт:** `GET /lessons/{lesson_id}`
-* **Назначение:** Получить полное содержимое урока для отображения на странице.
-* **Аутентификация:** **Требуется**.
-* **Request Body:** Нет.
-* **Success Response (200 OK) (Схема `LessonContent`):**
+#### **1. Fetch lesson content**
+* **Endpoint:** `GET /lessons/{lesson_id}`
+* **Purpose:** Retrieve the complete content for viewing a lesson.
+* **Authentication:** **Required**.
+* **Request Body:** None.
+* **Success Response (200 OK) (schema `LessonContent`):**
   ```json
   {
     "lesson_id": "uuid-lesson-1",
-    "title": "Урок 1: Что такое ML?",
-    "content_markdown": "### Введение \n Добро пожаловать...",
+    "title": "Lesson 1: What is ML?",
+    "content_markdown": "### Introduction \n Welcome...",
     "quiz": [
       {
         "question_id": "uuid-q-1",
-        "question_text": "Какой тип обучения...",
+        "question_text": "Which learning type...",
         "answers": [
           { "answer_id": "uuid-a-1", "answer_text": "Supervised" },
           { "answer_id": "uuid-a-2", "answer_text": "Unsupervised" }
@@ -265,11 +265,11 @@
   }
   ```
 
-#### **2. Завершение урока**
-* **Эндпоинт:** `POST /lessons/{lesson_id}/complete`
-* **Назначение:** Отметить урок как пройденный для текущего пользователя.
-* **Аутентификация:** **Требуется**.
-* **Request Body:** Нет.
+#### **2. Mark lesson as completed**
+* **Endpoint:** `POST /lessons/{lesson_id}/complete`
+* **Purpose:** Mark the lesson as completed for the current user.
+* **Authentication:** **Required**.
+* **Request Body:** None.
 * **Success Response (200 OK):**
   ```json
   {
@@ -277,10 +277,10 @@
   }
   ```
 
-#### **3. Проверка ответа на квиз**
-* **Эндпоинт:** `POST /quizzes/answers/check`
-* **Назначение:** Проверить правильность ответа на вопрос квиза.
-* **Аутентификация:** **Требуется**.
+#### **3. Validate quiz answer**
+* **Endpoint:** `POST /quizzes/answers/check`
+* **Purpose:** Validate the provided quiz answer.
+* **Authentication:** **Required**.
 * **Request Body:**
   ```json
   {
@@ -295,34 +295,36 @@
     "correct_answer_id": "uuid-a-1"
   }
   ```
-#### **4. Получение сырого контента урока (Админ)**
-* **Эндпоинт:** `GET /lessons/{slug}/raw`
-* **Назначение:** Получить сырой текст файла урока.
-* **Аутентификация:** **Требуется (Админ)**.
-* **Request Body:** Нет.
-* **Success Response (200 OK):** Текст файла.
 
-#### **5. Обновление сырого контента урока (Админ)**
-* **Эндпоинт:** `PUT /lessons/{slug}/raw`
-* **Назначение:** Обновить сырой текст файла урока.
-* **Аутентификация:** **Требуется (Админ)**.
-* **Request Body:** Текст файла.
+#### **4. Get raw lesson content (Admin)**
+* **Endpoint:** `GET /lessons/{slug}/raw`
+* **Purpose:** Retrieve the raw lesson file content.
+* **Authentication:** **Required (Admin)**.
+* **Request Body:** None.
+* **Success Response (200 OK):** Raw file text.
+
+#### **5. Update raw lesson content (Admin)**
+* **Endpoint:** `PUT /lessons/{slug}/raw`
+* **Purpose:** Update the raw lesson file content.
+* **Authentication:** **Required (Admin)**.
+* **Request Body:** Raw file text.
 * **Success Response (200 OK):**
   ```json
   {
     "message": "Lesson updated successfully"
   }
   ```
+
 ---
 
-### **Ресурс: `Analytics` (Аналитика)**
-* **Роутер:** `/activity-log`
+### **Resource: `Analytics`**
+* **Router:** `/activity-log`
 
-#### **1. Отправка события активности**
-* **Эндпоинт:** `POST /activity-log`
-* **Назначение:** Зарегистрировать событие пользовательской активности (асинхронно).
-* **Аутентификация:** **Требуется**.
-* **Request Body (Схема `TrackEventRequest`):**
+#### **1. Track activity event**
+* **Endpoint:** `POST /activity-log`
+* **Purpose:** Record a user activity event asynchronously.
+* **Authentication:** **Required**.
+* **Request Body (schema `TrackEventRequest`):**
   ```json
   {
     "activity_type": "LESSON_COMPLETED",
@@ -332,78 +334,16 @@
     }
   }
   ```
-* **Success Response (202 Accepted):** Пустое тело ответа.
+* **Success Response (202 Accepted):** Empty body.
 
-#### **2. Получение статистики активности пользователя**
-* **Эндпоинт:** `GET /activity-log`
-* **Назначение:** Получить агрегированную статистику активности пользователя за последний год.
-* **Аутентификация:** **Требуется**.
-* **Request Body:** Нет.
-* **Success Response (200 OK) (Схема `ActivityDetailsResponse`):**
+#### **2. Get activity summary**
+* **Endpoint:** `GET /activity-log`
+* **Purpose:** Retrieve aggregated activity statistics for the last year.
+* **Authentication:** **Required**.
+* **Request Body:** None.
+* **Success Response (200 OK) (schema `ActivityDetailsResponse`):**
   ```json
   {
----
-
-### **Ресурс: `Admin` (Администрирование)**
-* **Роутер:** `/api/admin`
-
-#### **1. Получение дерева контента**
-* **Эндпоинт:** `GET /api/admin/content-tree`
-* **Назначение:** Получить дерево структуры контента.
-* **Аутентификация:** **Требуется (Админ)**.
-* **Request Body:** Нет.
-* **Success Response (200 OK) (Список схем ContentNode):**
-  ```json
-  [
-    {
-      "type": "course",
-      "name": "course-slug",
-      "path": "courses/course-slug",
-      "children": [...],
-      "config_path": "courses/course-slug/_course.yml"
-    }
-  ]
-  ```
-
-#### **2. Получение конфигурационного файла**
-* **Эндпоинт:** `GET /api/admin/config-file?path=...`
-* **Назначение:** Получить содержимое конфигурационного файла.
-* **Аутентификация:** **Требуется (Админ)**.
-* **Request Body:** Нет.
-* **Success Response (200 OK):** Текст файла.
-
-#### **3. Обновление конфигурационного файла**
-* **Эндпоинт:** `PUT /api/admin/config-file?path=...`
-* **Назначение:** Обновить содержимое конфигурационного файла.
-* **Аутентификация:** **Требуется (Админ)**.
-* **Request Body:** Текст файла.
-* **Success Response (200 OK):**
-  ```json
-  {
-    "status": "updated"
-  }
-  ```
-
-#### **4. Создание элемента контента**
-* **Эндпоинт:** `POST /api/admin/create/{item_type}`
-* **Назначение:** Создать курс, модуль или урок.
-* **Аутентификация:** **Требуется (Админ)**.
-* **Request Body:** Зависит от item_type (CreateCourseRequest, etc.)
-* **Success Response (201 Created):**
-  ```json
-  {
-    "status": "created"
-  }
-  ```
-
-#### **5. Удаление элемента контента**
-* **Эндпоинт:** `DELETE /api/admin/item?path=...`
-* **Назначение:** Удалить элемент контента.
-* **Аутентификация:** **Требуется (Админ)**.
-* **Request Body:** Нет.
-* **Success Response (204 No Content):**
-
----
     "activities": [
       {
         "date": "2024-10-01",
@@ -419,14 +359,74 @@
   }
   ```
 
+---
+
+### **Resource: `Admin`**
+* **Router:** `/api/admin`
+
+#### **1. Get content tree**
+* **Endpoint:** `GET /api/admin/content-tree`
+* **Purpose:** Retrieve the hierarchical structure of content elements.
+* **Authentication:** **Required (Admin)**.
+* **Request Body:** None.
+* **Success Response (200 OK) (list of `ContentNode` schema):**
+  ```json
+  [
+    {
+      "type": "course",
+      "name": "course-slug",
+      "path": "courses/course-slug",
+      "children": [...],
+      "config_path": "courses/course-slug/_course.yml"
+    }
+  ]
+  ```
+
+#### **2. Get configuration file**
+* **Endpoint:** `GET /api/admin/config-file?path=...`
+* **Purpose:** Retrieve the contents of a configuration file.
+* **Authentication:** **Required (Admin)**.
+* **Request Body:** None.
+* **Success Response (200 OK):** File content.
+
+#### **3. Update configuration file**
+* **Endpoint:** `PUT /api/admin/config-file?path=...`
+* **Purpose:** Update the contents of a configuration file.
+* **Authentication:** **Required (Admin)**.
+* **Request Body:** File content.
+* **Success Response (200 OK):**
+  ```json
+  {
+    "status": "updated"
+  }
+  ```
+
+#### **4. Create content item**
+* **Endpoint:** `POST /api/admin/create/{item_type}`
+* **Purpose:** Create a course, module, or lesson.
+* **Authentication:** **Required (Admin)**.
+* **Request Body:** Depends on `item_type` (e.g., `CreateCourseRequest`).
+* **Success Response (201 Created):**
+  ```json
+  {
+    "status": "created"
+  }
+  ```
+
+#### **5. Delete content item**
+* **Endpoint:** `DELETE /api/admin/item?path=...`
+* **Purpose:** Delete a content element.
+* **Authentication:** **Required (Admin)**.
+* **Request Body:** None.
+* **Success Response (204 No Content):**
 
 ---
 
-### **Корневой эндпоинт**
-* **Эндпоинт:** `GET /`
-* **Назначение:** Проверка статуса API.
-* **Аутентификация:** Не требуется.
-* **Request Body:** Нет.
+### **Root Endpoint**
+* **Endpoint:** `GET /`
+* **Purpose:** Check API health.
+* **Authentication:** Not required.
+* **Request Body:** None.
 * **Success Response (200 OK):**
   ```json
   {
@@ -436,4 +436,4 @@
 
 ---
 
-Эта структура эндпоинтов логически разделяет публичную и приватную части, четко определяет потоки данных и предоставляет фронтенду всю необходимую информацию для рендеринга страниц.
+This endpoint structure clearly separates public and private surfaces, defines data flows, and gives the frontend everything it needs to render pages.

@@ -1,106 +1,107 @@
-Отлично! Проектирование архитектуры бэкенда — ключевой этап. Правильная архитектура сделает систему надежной, масштабируемой и легкой в поддержке.
+Great! Designing the backend architecture is a crucial step. The right architecture keeps the system reliable, scalable, and easy to maintain.
 
-Давайте спроектируем архитектуру для нашего "ML-Практикума", используя современные и проверенные подходы.
-
----
-
-### **Архитектура Бэкенда: "Сервис-ориентированный Монолит"**
-
-**Философия:** Мы не будем усложнять и строить микросервисы с самого начала. Это излишне для нашего проекта. Вместо этого мы построим **"монолит"**, но с **четким разделением ответственности** внутри, как если бы это были отдельные сервисы. Такой подход называется **сервис-ориентированным** или **модульным монолитом**. Он дает нам простоту развертывания монолита и чистоту архитектуры микросервисов.
-
-**Технологический Стек:**
-
-* **Язык:** **Python 3.10+**. Он идеален для бэкенда, особенно с учетом тематики ML.
-* **Фреймворк:** **FastAPI**.
-  * **Почему FastAPI?**
-    1. **Высокая производительность:** Один из самых быстрых фреймворков для Python, построен на асинхронности (ASGI).
-    2. **Автоматическая документация:** Генерирует интерактивную документацию API (Swagger UI / OpenAPI) из кода. Это невероятно удобно для разработки и тестирования.
-    3. **Валидация данных:** Использует `Pydantic` для строгой типизации и валидации всех входящих и исходящих данных. Меньше ошибок, больше надежности.
-* **База Данных:** **PostgreSQL**.
-  * **Почему PostgreSQL?**
-    1. **Надежность и мощь:** Самая продвинутая реляционная СУБД с открытым исходным кодом.
-    2. **Работа с JSON:** Отлично поддерживает JSONB, что может быть полезно для хранения сложного контента уроков.
-* **ORM (Object-Relational Mapper):** **SQLAlchemy 2.0** (с асинхронным подходом через `asyncio`).
-  * **Почему SQLAlchemy?** Это стандарт де-факто в мире Python. Позволяет работать с базой данных через Python-объекты, а не писать сырые SQL-запросы.
-* **Управление зависимостями:** **Poetry**. Современный и удобный инструмент.
+We will architect the “ML-Practicum” backend with modern, proven building blocks.
 
 ---
 
-### **Структура Проекта (Архитектура Директорий)**
+### **Backend Architecture: Service-Oriented Monolith**
 
-Четкая структура — залог успеха. Вот как будет выглядеть наш проект:
+**Philosophy:** Instead of prematurely splitting into microservices, we start with a **monolith** that cleanly separates responsibilities internally—almost like independent services. This “service-oriented monolith” keeps deployment simple while preserving the architectural clarity of microservices.
+
+**Technology Stack:**
+
+* **Language:** **Python 3.10+** — ideal for backend development and aligns with the ML-theme.
+* **Framework:** **FastAPI**
+  * **Why FastAPI?**
+    1. **High Performance:** One of the fastest async frameworks for Python (ASGI-native).
+    2. **Automatic Documentation:** Generates OpenAPI/Swagger docs directly from code—great for iteration and testing.
+    3. **Data Validation:** Uses `Pydantic` for strict typing, reducing bugs and improving reliability.
+* **Database:** **PostgreSQL**
+  * **Why PostgreSQL?**
+    1. **Stability and Power:** Leading open-source relational DB.
+    2. **JSON Support:** JSONB fits well for rich lesson content.
+* **ORM:** **SQLAlchemy 2.0** (async via `asyncio`)
+  * **Why SQLAlchemy?** Standard approach in Python to work with the database through models rather than raw SQL.
+* **Dependency Management:** **Poetry**
+
+---
+
+### **Project Layout (Directory Architecture)**
+
+Clear structure is essential. Here’s how the repository is organized:
 
 ```
 ml_practicum/
-├── alembic/              # Директория для миграций базы данных
+├── alembic/              # Database migrations
 ├── src/
-│   ├── api/              # Слой API (эндпоинты FastAPI)
+│   ├── api/              # FastAPI endpoints
 │   │   ├── v1/
 │   │   │   ├── auth.py
 │   │   │   ├── courses.py
 │   │   │   └── dashboard.py
 │   │   └── __init__.py
 │   │
-│   ├── core/             # Ядро приложения
-│   │   ├── config.py     # Конфигурация (переменные окружения)
-│   │   └── security.py   # Хеширование паролей, работа с JWT
+│   ├── core/             # Application core config
+│   │   ├── config.py     # Environment config
+│   │   └── security.py   # Password hashing, JWT helpers
 │   │
-│   ├── crud/             # Слой доступа к данным (Create, Read, Update, Delete)
+│   ├── crud/             # Create/Read/Update/Delete layer
 │   │   ├── crud_user.py
 │   │   └── crud_course.py
 │   │
-│   ├── db/               # Все, что связано с базой данных
-│   │   ├── base.py       # Декларативная база для моделей SQLAlchemy
-│   │   └── session.py    # Создание сессий для подключения к БД
+│   ├── db/               # Database utilities
+│   │   ├── base.py       # Declarative base for SQLAlchemy models
+│   │   └── session.py    # Session handling
 │   │
-│   ├── models/           # Модели данных SQLAlchemy (описание таблиц)
+│   ├── models/           # SQLAlchemy table definitions
 │   │   ├── user.py
 │   │   ├── course.py
 │   │   └── lesson.py
 │   │
-│   ├── schemas/          # Модели данных Pydantic (валидация для API)
+│   ├── schemas/          # Pydantic models for API validation
 │   │   ├── user.py
 │   │   ├── course.py
 │   │   └── token.py
 │   │
-│   ├── services/         # Слой бизнес-логики (The Core Logic)
+│   ├── services/         # Business logic layer
 │   │   ├── auth_service.py
 │   │   ├── course_service.py
 │   │   └── progress_service.py
 │   │
-│   └── main.py           # Главный файл приложения FastAPI
+│   └── main.py           # FastAPI application entry point
 │
-├── tests/                # Директория для тестов
-│
-├── .env                  # Файл с переменными окружения (не в git)
+├── tests/                # Automated tests
+├── .env                  # Local environment overrides (not committed)
 ├── poetry.lock
 └── pyproject.toml
 ```
 
 ---
 
-### **Поток Запроса (Как все это работает вместе)**
+### **Request Flow (How Everything Works Together)**
 
-Давайте проследим путь одного запроса, например, `GET /dashboard/my-courses`:
+Take `GET /dashboard/my-courses` as an example:
 
-1. **Вход в `main.py`:** Запрос попадает в главный роутер FastAPI.
-2. **Роутинг в `api/v1/dashboard.py`:** FastAPI находит соответствующий эндпоинт (`@router.get("/my-courses")`).
-3. **Зависимости (Dependencies):** FastAPI автоматически выполняет зависимости, например, `get_current_user`, которая проверяет JWT-токен и извлекает из него пользователя.
-4. **Вызов Сервиса (`services/course_service.py`):** Код в эндпоинте **не работает с базой данных напрямую**. Он вызывает функцию из сервисного слоя, например, `course_service.get_user_courses(user_id)`. Это инкапсулирует бизнес-логику.
-5. **Логика в Сервисе:** `course_service` может содержать сложную логику. Например, сначала он получает список курсов, на которые записан пользователь, а затем для каждого курса вызывает `progress_service`, чтобы рассчитать процент прохождения.
-6. **Обращение к CRUD (`crud/crud_course.py`):** Сервис, в свою очередь, не пишет SQL. Он использует функции из слоя CRUD для взаимодействия с базой данных, например, `crud_course.get_multi_by_user(user_id)`.
-7. **Слой CRUD и SQLAlchemy:** Функция в `crud_course.py` использует модели SQLAlchemy для выполнения запроса к базе данных через ORM.
-8. **Возврат данных:**
-   * **SQLAlchemy** возвращает Python-объекты (модели `models`) в слой **CRUD**.
-   * **CRUD** возвращает их в **Сервис**.
-   * **Сервис** обрабатывает их и возвращает в **API**.
-9. **Валидация Pydantic:** Прежде чем отправить ответ, FastAPI автоматически валидирует его с помощью **схем Pydantic (`schemas`)**. Это гарантирует, что фронтенд всегда получит данные в ожидаемом формате.
-10. **Ответ Фронтенду:** FastAPI отправляет JSON-ответ.
+1. **Entry in `main.py`:** The HTTP request arrives at FastAPI’s router.
+2. **Routing in `api/v1/dashboard.py`:** FastAPI matches the endpoint (`@router.get("/my-courses")`).
+3. **Dependencies:** FastAPI resolves dependencies such as `get_current_user`, which validates the JWT and retrieves the user.
+4. **Service Layer Call:** The endpoint does not talk to the database directly. It delegates to `services/course_service.py`, e.g., `course_service.get_user_courses(user_id)`, encapsulating business logic.
+5. **Business Logic:** The service may combine data—for instance, fetching courses and then consulting `progress_service` to compute completion percentages.
+6. **CRUD Layer:** Services rely on CRUD helpers (`crud/crud_course.py`) to perform database operations instead of writing raw SQL.
+7. **SQLAlchemy Models:** CRUD functions use SQLAlchemy models to query the database via the ORM.
+8. **Data Propagation:**
+   * SQLAlchemy returns model objects to CRUD.
+   * CRUD returns those results to the service.
+   * Services process the data and hand it back to the API layer.
+9. **Pydantic Validation:** Before sending the response, FastAPI validates the output against Pydantic schemas (`schemas/`), guaranteeing the frontend receives consistent payloads.
+10. **Response to Frontend:** FastAPI returns a JSON response.
 
-### **Ключевые Преимущества этой Архитектуры**
+---
 
-* **Разделение Ответственности (Separation of Concerns):** Каждый слой делает только свою работу. API отвечает за HTTP, Сервисы — за бизнес-логику, CRUD — за доступ к данным. Это делает код чище и проще для тестирования.
-* **Тестируемость:** Мы можем тестировать бизнес-логику в сервисах, не затрагивая базу данных или веб-сервер, подменяя зависимости (mocking).
-* **Масштабируемость:** Если какой-то сервис (например, расчет прогресса) станет очень сложным и ресурсоемким, его можно будет относительно легко выделить в отдельный микросервис, так как его логика уже инкапсулирована.
-* **Надежность:** Pydantic и SQLAlchemy обеспечивают строгую типизацию на всех уровнях, от API до базы данных, что значительно уменьшает количество ошибок.
-* **Удобство Разработки:** Автоматическая документация FastAPI и четкая структура проекта позволяют новым разработчикам быстро входить в курс дела.
+### **Key Advantages**
+
+* **Separation of Concerns:** API handles HTTP, services handle business logic, CRUD handles persistence. Each layer does a single job, improving readability and testability.
+* **Testability:** Business logic lives in services, so tests can mock dependencies without spinning up the whole web stack.
+* **Scalability:** If a service (e.g., progress calculation) grows complex, it can be extracted into its own microservice because its logic is already encapsulated.
+* **Reliability:** Pydantic + SQLAlchemy enforce clear typing from API to the database, reducing runtime errors.
+* **Developer Experience:** FastAPI’s auto-documentation plus the well-defined structure make it easy for new team members to onboard quickly.
